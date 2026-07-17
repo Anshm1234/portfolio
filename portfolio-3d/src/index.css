@@ -1,0 +1,174 @@
+/* ============================================================
+   WEBSITE STYLES — warm "workspace" theme, drawn from the hero render:
+   taupe background, walnut wood, cream, matte charcoal, a hint of plant.
+   The game brings its own style.css for its overlay UI.
+   ============================================================ */
+@import './game/game.css';   /* the game's overlay styles (panels, showcase) */
+
+:root {
+  --bg:        #beb09e;   /* warm taupe/mushroom — the render backdrop */
+  --bg-deep:   #a1968899; /* slightly deeper taupe for gradients */
+  --surface:   #e9ddcd;   /* raised card surface, lighter taupe */
+  --wood:      #b07a45;   /* walnut wood accent (the desk) */
+  --wood-deep: #7a4f28;   /* darker wood for hovers/borders */
+  --cream:     #dfd8cd;   /* the shirt — near-white cream */
+  --ink:       #2e2a26;   /* matte charcoal — primary text */
+  --ink-soft:  #5b544c;   /* secondary text */
+  --leaf:      #5b7d3a;   /* plant green — sparing accent */
+  --line:      #8f8375;   /* hairline borders on taupe */
+}
+
+* { margin: 0; box-sizing: border-box; }
+:root { color-scheme: light; }
+html, body { height: auto; overflow-x: hidden; }
+body {
+  /* --frame-bg is sampled at runtime from the first render frame so the
+     page blends seamlessly into the canvas; taupe is the fallback. */
+  background: var(--frame-bg, var(--bg)); color: var(--ink);
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  line-height: 1.6;
+}
+/* while the game overlay is open, lock page scroll behind it */
+body.game-open { overflow: hidden; }
+
+/* ============================================================
+   NAVBAR — floating glass pill, rounded, blurs whatever scrolls under
+   ============================================================ */
+.nav {
+  position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 80;
+  display: flex; align-items: center; gap: 26px;
+  padding: 10px 22px; border-radius: 999px;
+  background: rgba(255, 252, 246, .38);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  backdrop-filter: blur(14px) saturate(1.3);
+  border: 1px solid rgba(255,255,255,.5);
+  box-shadow: 0 8px 32px rgba(46,42,38,.12), inset 0 1px 0 rgba(255,255,255,.6);
+  transition: background .3s, box-shadow .3s;
+}
+.nav.scrolled {
+  background: rgba(255, 252, 246, .62);
+  box-shadow: 0 10px 36px rgba(46,42,38,.18), inset 0 1px 0 rgba(255,255,255,.7);
+}
+.nav-brand { font-weight: 800; font-size: 16px; color: var(--ink); text-decoration: none; letter-spacing: .5px; }
+
+/* the menu is the positioning context for the underline + its sparks */
+.nav-menu { position: relative; display: flex; align-items: center; padding-right: 15px; padding-left: 15px; }
+.nav-links { display: flex; gap: 40px; list-style: none; margin: 0; padding: 0; }
+.nav-links li { transform-origin: 50% 100%; will-change: transform; }
+.nav-links a {
+  display: block;
+  color: var(--ink-soft); text-decoration: none; font-weight: 600; font-size: 13.5px;
+  transition: color .2s;
+}
+.nav-links li:hover a, .nav-links li.active a { color: var(--ink); }
+
+/* comet underline — wood-to-gold bar that flies between links */
+.nav-underline {
+  position: absolute; left: 0; bottom: -6px;
+  width: 24px; height: 3px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--wood) 0%, #c8a36c 100%);
+  box-shadow: 0 0 6px rgba(236, 197, 139, 0.6);
+  opacity: 0;               /* revealed once placed under the active link */
+  pointer-events: none;
+}
+/* golden embers shed while the underline travels */
+.nav-spark {
+  position: absolute; width: 3px; height: 3px; border-radius: 50%;
+  background: #ffcf7d;
+  box-shadow: 0 0 6px 1px rgba(255, 184, 77, .8);
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  .nav { gap: 14px; padding: 9px 16px; }
+  .nav-links { gap: 14px; }
+  .nav-links a { font-size: 12.5px; }
+}
+
+/* ============================================================
+   HERO — GSAP ScrollTrigger pins .hero-stage and provides the scroll
+   runway itself (pin-spacer), so no tall section / CSS sticky needed.
+   ============================================================ */
+.hero { position: relative; }
+.hero-stage { position: relative; height: 100vh; width: 100%; overflow: hidden; }
+.scrolly-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* --- Overlay beats --- */
+.overlay { position: absolute; inset: 0; z-index: 10; pointer-events: none; }
+.beat { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; padding: 24px; opacity: 0; }
+.hero-loading {
+  position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%);
+  font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-soft);
+}
+.beat-center { align-items: center; text-align: center; }
+.beat-left  { align-items: flex-start; text-align: left;  padding-left:  max(7vw, 28px); }
+.beat-right { align-items: flex-end;  text-align: right; padding-right: max(7vw, 28px); }
+/* keep left-side text inside the render's empty left half —
+   the character + desk occupy the right half of every frame */
+.beat-left > * { max-width: min(48vw, 620px); }
+@media (max-width: 640px) { .beat-left > * { max-width: 86vw; } }
+
+.beat-eyebrow { letter-spacing: 5px; text-transform: uppercase; color: var(--ink-soft); font-size: 15px; font-weight: 700; }
+.beat-title { font-size: clamp(44px, 9vw, 96px); line-height: 1.02; color: var(--ink); font-weight: 800; letter-spacing: -.02em; margin: 8px 0 4px; }
+.beat-sub { font-size: clamp(16px, 2.4vw, 22px); color: var(--ink-soft); font-weight: 500; }
+.beat-line { font-size: clamp(28px, 5vw, 56px); line-height: 1.1; color: var(--ink); font-weight: 700; letter-spacing: -.01em; max-width: 14em; }
+
+.beat-final { gap: 18px; }
+.invite-btn {
+  pointer-events: auto; cursor: pointer;
+  min-height: 52px; padding: 0 28px; border: none; border-radius: 999px;
+  background: var(--ink); color: #fff; font: inherit; font-weight: 700; font-size: 16px;
+  box-shadow: 0 12px 36px rgba(46,42,38,.35);
+  transition: transform .15s, filter .2s;
+}
+.invite-btn:hover { filter: brightness(1.15); transform: translateY(-2px); }
+
+.link-btn {
+  background: none; border: none; color: var(--wood-deep); font: inherit; font-weight: 700;
+  cursor: pointer; padding: 0;
+}
+.link-btn:hover { text-decoration: underline; }
+
+/* --- Sections --- */
+.site { width: 100%; }
+
+.section { max-width: 900px; margin: 0 auto; padding: 80px 24px; }
+.section-title { font-size: clamp(26px, 5vw, 40px); margin-bottom: 18px; color: var(--ink); }
+.section-body { color: var(--ink-soft); font-size: 16px; }
+.section-body a { color: var(--wood-deep); font-weight: 700; }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
+
+/* --- Projects grid --- */
+.proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
+.proj-card {
+  background: var(--surface); border: 1px solid var(--line);
+  border-left: 3px solid var(--accent, var(--wood)); border-radius: 14px; padding: 18px;
+  box-shadow: 0 6px 18px rgba(60,48,36,.12);
+}
+.proj-card h3 { font-size: 18px; color: var(--ink); }
+.proj-stack { color: var(--wood-deep); font-size: 12.5px; font-weight: 700; margin: 4px 0 8px; }
+.proj-desc { color: var(--ink-soft); font-size: 14px; }
+.proj-links { margin-top: 12px; display: flex; gap: 14px; }
+.proj-links a { color: var(--ink); font-weight: 700; font-size: 13px; text-decoration: none; }
+.proj-links a:hover { color: var(--wood-deep); }
+
+/* --- Launch button (bottom-right), and its in-game twin --- */
+.game-launch-btn, .game-exit-btn {
+  position: fixed; right: 22px; bottom: 22px; z-index: 60;
+  min-height: 48px; padding: 0 22px; cursor: pointer;
+  background: var(--ink); color: var(--cream); font-weight: 800; font-size: 15px;
+  border: none; border-radius: 999px; box-shadow: 0 10px 30px rgba(46,42,38,.35);
+  transition: transform .12s, filter .2s;
+}
+.game-launch-btn:hover, .game-exit-btn:hover { filter: brightness(1.12); }
+.game-launch-btn:active, .game-exit-btn:active { transform: translateY(1px); }
+.game-exit-btn {
+  background: var(--cream); color: var(--ink); border: 1px solid var(--line); z-index: 70;
+}
+
+/* --- Game shell: full-screen overlay; hidden (kept alive) when exited --- */
+.game-shell { position: fixed; inset: 0; z-index: 50; }
+.game-shell:not(.open) { visibility: hidden; pointer-events: none; }
+.game-overlay, .game-canvas { position: fixed; inset: 0; }
+.game-canvas { z-index: 0; }
