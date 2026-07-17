@@ -471,7 +471,11 @@ let zoom = 1, zoomTarget = 1;
 addEventListener('wheel', (e) => {
   if (!gameIsOpen()) return;   // let the website scroll normally
   e.preventDefault();
-  zoomTarget = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomTarget * (1 + e.deltaY * 0.001)));
+  // Touchpads emit streams of tiny deltas (~2–20px) where one mouse-wheel
+  // notch is ~100px, so zooming felt glacial on a trackpad. Boost fine
+  // deltas; real wheel notches (≥60px) pass through unchanged.
+  const d = e.deltaY * (Math.abs(e.deltaY) < 60 ? 4.5 : 1);
+  zoomTarget = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomTarget * (1 + d * 0.001)));
 }, { passive: false });
 const scaledOff = new THREE.Vector3();               // CAM_OFF * zoom, reused each frame
 
