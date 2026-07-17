@@ -338,6 +338,11 @@ new GLTFLoader().load(
         actions['fall'].setLoop(THREE.LoopOnce);
         actions['fall'].clampWhenFinished = true;
       }
+      if (actions['sit']) {
+        // one-shot: sit down, then HOLD the seated pose until stand-up
+        actions['sit'].setLoop(THREE.LoopOnce);
+        actions['sit'].clampWhenFinished = true;
+      }
       // If the model finished loading while the intro sky-drop is still in the
       // air, attach the Fall clip now (paused — the FALL/sky branch scrubs its
       // .time by height). Otherwise just stand idle.
@@ -382,7 +387,7 @@ addEventListener('keydown', (e) => {
     return;                              // swallow other keys so the player stays put
   }
   if ((k === 'e' || k === 'enter') && !e.repeat) return interact();
-  if (k === 'escape') return closePanel();
+  if (k === 'escape') { standUp(); return closePanel(); }
   keys[k] = true;
 });
 addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });   // always safe: only clears
@@ -406,11 +411,21 @@ function nearestStation() {
   }
   return best;
 }
+// --- Sitting (the tree) ---------------------------------------
+// A station with `action: 'sit'` doesn't open a panel — E sits the character
+// down (one-shot Sit clip, held at the seated pose). E again, Escape, or any
+// movement key stands back up.
+let sitting = false;
+function sitDown() { sitting = true; playClip('sit'); }
+function standUp() { if (sitting) { sitting = false; playClip('idle'); } }
+
 function interact() {
   if (state === 'PROJECT') return;       // already inside the showcase
   if (panelOpen) return closePanel();
+  if (sitting) return standUp();
   const s = nearestStation();
   if (!s) return;
+  if (s.action === 'sit') return sitDown();
   // the workstation opens the interactive PC showcase instead of a panel
   if (s.id === 'projects' && s.group) return enterProject();
   pTitle.textContent = s.name;
@@ -514,9 +529,10 @@ function update(dt, t) {
     let ix = (keys['d'] || keys['arrowright'] ? 1 : 0) - (keys['a'] || keys['arrowleft'] ? 1 : 0);
     let iz = (keys['s'] || keys['arrowdown'] ? 1 : 0) - (keys['w'] || keys['arrowup'] ? 1 : 0);
     if (panelOpen || inputLocked) ix = iz = 0;   // no movement while a panel is open or fall recovery plays
+    if (sitting && (ix || iz)) standUp();        // any movement key stands you up
     const moving = ix !== 0 || iz !== 0;
-    // hold off idle/walk while the post-impact Fall phase is still playing
-    if (!playFall) playClip(moving ? 'walk' : 'idle');
+    // hold off idle/walk while the post-impact Fall phase plays, or while seated
+    if (!playFall && !sitting) playClip(moving ? 'walk' : 'idle');
 
     if (moving) {
       // Camera sits at a 45° corner, so rotate the input by the

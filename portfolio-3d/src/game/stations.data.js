@@ -14,6 +14,7 @@
 //   rotY    facing, in radians
 //   effects true only for props with steam/fire/leaf parts (the desk)
 //   animate true to play the GLB's baked clips (the tree's falling leaves)
+//   action  'sit' = no panel; E plays the character's Sit clip (E/Esc/move stands up)
 //   ignore  regex of mesh names that must NOT define the footprint — see the
 //           tree: its loose leaf cards sit below the trunk and would otherwise
 //           become the "bottom" of the model and float it off the ground
@@ -42,10 +43,10 @@ export const STATIONS = [
   {
     // The corner camera looks from (+x,+z) toward the middle, so screen-right
     // is the (+x,-z) corner — that's this one. Platform edge is at ±17.5.
-    id: 'tree', name: 'THE TREE', color: 0xe08a3c, x: 16.5, z: -15.5,
+    id: 'tree', name: 'SIT UNDER THE TREE', color: 0xe08a3c, x: 16.5, z: -15.5,
     model: '/models/autumn_tree_scene.glb', fit: 15, rotY: Math.PI,
     animate: true,        // 44 baked falling-leaf clips
     ignore: /^FLeaf/i,    // loose leaves must not define the ground (they float it)
-    body: 'TODO — what should this station say?',
+    action: 'sit',        // no panel — E plays the character's Sit clip
   },
 ];

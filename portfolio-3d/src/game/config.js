@@ -15,7 +15,7 @@
 // sunset (5–7pm) — your blush-pink favorite, unchanged
 // dusk (7–9pm) — deeper rose into periwinkle, low warm sun
 // night (9pm–5am) — deep navy sky, cool dim moonlight
-const FORCE_PHASE = 'null';   // TESTING — cycle: 'dawn'→'day'→'sunset'→'dusk'→'night', then back to null
+const FORCE_PHASE = 'sunset';   // TESTING — cycle: 'dawn'→'day'→'sunset'→'dusk'→'night', then back to null
 
 const PALETTES = {
   //        horizon/fog  zenith      sunDisc      tileA/tileB          accent
