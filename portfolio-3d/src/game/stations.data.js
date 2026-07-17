@@ -15,6 +15,7 @@
 //   effects true only for props with steam/fire/leaf parts (the desk)
 //   animate true to play the GLB's baked clips (the tree's falling leaves)
 //   action  'sit' = no panel; E plays the character's Sit clip (E/Esc/move stands up)
+//   decor   true = pure scenery: no halo, no prompt, no interaction (the fence)
 //   ignore  regex of mesh names that must NOT define the footprint — see the
 //           tree: its loose leaf cards sit below the trunk and would otherwise
 //           become the "bottom" of the model and float it off the ground
@@ -39,6 +40,12 @@ export const STATIONS = [
     model: '/models/contact-letterbox.glb', fit: 5, rotY: (Math.PI/2)-0.3,
     body: 'Email — you@swap-this.dev\nGitHub — Anshm1234',
     link: ['GitHub ↗', 'https://github.com/Anshm1234'],
+  },
+  {
+    // Screen-LEFT corner: camera looks from (+x,+z), so that's (-x,+z).
+    // Pure scenery — `decor` skips the halo, prompt and interaction.
+    id: 'fence', decor: true, x: -16.5, z: 16.5,
+    model: '/models/fence.glb', fit: 1.8, rotY: 0,
   },
   {
     // The corner camera looks from (+x,+z) toward the middle, so screen-right

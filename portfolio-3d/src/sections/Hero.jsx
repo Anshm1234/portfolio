@@ -25,17 +25,32 @@ export default function Hero({ onPlay }) {
   const lastIdx = useRef(-1);
   const [loaded, setLoaded] = useState(false);
 
+  // nearest loaded frame to `idx` — during the progressive load the exact
+  // frame may not be in yet, so scrub with the closest neighbour we have
+  const pick = (idx) => {
+    if (frames.current[idx]) return frames.current[idx];
+    for (let o = 1; o < FRAME_COUNT; o++) {
+      if (frames.current[idx - o]) return frames.current[idx - o];
+      if (frames.current[idx + o]) return frames.current[idx + o];
+    }
+    return null;
+  };
+
   // ---- draw one frame, cover-fit, dpr-aware ----
+  const lastImg = useRef(null);
   const draw = (idx) => {
     const canvas = canvasRef.current;
-    const img = frames.current[idx] || frames.current[lastIdx.current];
+    const img = pick(idx);
     if (!canvas || !img) return;
     const dpr = Math.min(devicePixelRatio, 2);
     const W = Math.round(innerWidth * dpr), H = Math.round(innerHeight * dpr);
     const resized = canvas.width !== W || canvas.height !== H;
-    // scrub fires every tick — repaint only when the frame (or size) changed
-    if (!resized && idx === lastIdx.current) return;
+    // scrub fires every tick — repaint only when the image (or size) changed.
+    // Comparing the IMAGE (not the index) lets a late-arriving exact frame
+    // replace the neighbour that stood in for it.
+    if (!resized && img === lastImg.current) return;
     lastIdx.current = idx;
+    lastImg.current = img;
     if (resized) { canvas.width = W; canvas.height = H; }
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = true;
@@ -44,10 +59,15 @@ export default function Hero({ onPlay }) {
     ctx.drawImage(img, (W - img.width * s) / 2, (H - img.height * s) / 2, img.width * s, img.height * s);
   };
 
-  // ---- preload frames (loud logging stays) ----
+  // ---- progressive preload: don't pull all 13MB up front.
+  //   wave 1 — every 6th frame (~2MB): the scrub works within seconds,
+  //            stepping through neighbours where frames are missing
+  //   wave 2 — everything else, in the background, upgrading the scrub
+  //            to full smoothness as frames arrive
   useEffect(() => {
     let alive = true, ok = 0, bad = 0;
-    for (let i = 0; i < FRAME_COUNT; i++) {
+
+    const loadOne = (i, done) => {
       const img = new Image();
       img.onload = () => {
         if (!alive) return;
@@ -66,13 +86,29 @@ export default function Hero({ onPlay }) {
         }
         if ((ok + bad) === FRAME_COUNT)
           console.info(`[hero] frames loaded: ${ok}/${FRAME_COUNT}` + (bad ? `, FAILED: ${bad}` : ''));
+        done?.();
       };
-      img.onerror = () => { if (++bad === 1) console.error('[hero] frame failed:', framePath(i)); };
+      img.onerror = () => { if (++bad === 1) console.error('[hero] frame failed:', framePath(i)); done?.(); };
       img.src = framePath(i);
       // pre-warm the decoder — without this, each frame pays its decode cost
       // the FIRST time it's drawn mid-scroll, which reads as micro-stutter
       img.decode?.().catch(() => { /* onerror already reports */ });
-    }
+    };
+
+    const coarse = [], fine = [];
+    for (let i = 0; i < FRAME_COUNT; i++) (i % 6 === 0 ? coarse : fine).push(i);
+
+    let pending = coarse.length;
+    const onCoarseDone = () => {
+      if (--pending > 0 || !alive) return;
+      console.info('[hero] coarse frames in — loading the rest in the background');
+      // second wave when the browser is idle (or shortly after, as fallback)
+      const start = () => alive && fine.forEach((i) => loadOne(i));
+      if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 2500 });
+      else setTimeout(start, 800);
+    };
+    coarse.forEach((i) => loadOne(i, onCoarseDone));
+
     return () => { alive = false; };
   }, []);
 
@@ -136,8 +172,16 @@ export default function Hero({ onPlay }) {
           </div>
           <div className="beat beat-left beat-final" ref={b4}>
             <h2 className="beat-line">Want to know me?</h2>
-            <button type="button" className="invite-btn" onClick={onPlay}>
-              ▶ Know me through a game
+            <button type="button" className="game-btn invite-btn" onClick={onPlay}>
+              {/* wood pill with lanyard-style stitching; the pulsing halo ring
+                  (same invitation cue the game's stations use) marks it as the
+                  door into the game */}
+              <span className="game-btn-halo" aria-hidden="true" />
+              <span className="game-btn-scene" aria-hidden="true" />
+              <span className="game-btn-label">
+                <i className="gb-ham" aria-hidden="true">▶</i>
+                Know me through a game
+              </span>
             </button>
           </div>
         </div>

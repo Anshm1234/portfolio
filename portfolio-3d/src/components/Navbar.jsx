@@ -173,23 +173,36 @@ export default function Navbar() {
   }, []);
 
   return (
-    <nav className={scrolled ? 'nav scrolled' : 'nav'}>
-      <div className="nav-menu" ref={menuRef}>
-        <ul className="nav-links">
-          {LINKS.map(([label, hash], i) => (
-            <li key={hash} className={i === activeIndex ? 'active' : ''}>
-              <a
-                href={hash}
-                ref={(el) => { linkRefs.current[i] = el; }}
-                onClick={(e) => onSelect(e, i, hash)}
-              >
-                {label}
-              </a>
-            </li>
-          ))}
-        </ul>
-        <div className="nav-underline" ref={barRef} />
-      </div>
-    </nav>
+    <>
+      {/* circular monogram badge — fixed to the screen's top-left corner,
+          light cream like the card face; click returns to the top */}
+      <a
+        href="#home"
+        className="nav-logo"
+        aria-label="Ansh Madaan — back to top"
+        onClick={(e) => onSelect(e, 0, '#home')}
+      >
+        AM
+      </a>
+
+      <nav className={scrolled ? 'nav scrolled' : 'nav'}>
+        <div className="nav-menu" ref={menuRef}>
+          <ul className="nav-links">
+            {LINKS.map(([label, hash], i) => (
+              <li key={hash} className={i === activeIndex ? 'active' : ''}>
+                <a
+                  href={hash}
+                  ref={(el) => { linkRefs.current[i] = el; }}
+                  onClick={(e) => onSelect(e, i, hash)}
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+          <div className="nav-underline" ref={barRef} />
+        </div>
+      </nav>
+    </>
   );
 }

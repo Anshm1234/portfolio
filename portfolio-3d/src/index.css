@@ -51,6 +51,29 @@ body.game-open { overflow: hidden; }
 }
 .nav-brand { font-weight: 800; font-size: 16px; color: var(--ink); text-decoration: none; letter-spacing: .5px; }
 
+/* circular monogram badge — the ID-card monogram at the screen's top-left
+   corner, level with the nav pill. Light cream face with wood initials. */
+.nav-logo {
+  position: fixed; top: 16px; left: 18px; z-index: 80;
+  display: grid; place-items: center;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: linear-gradient(140deg, #fdf7ee, var(--surface) 65%, #ddcfba);
+  color: var(--wood-deep); text-decoration: none;
+  font-weight: 800; font-size: 13.5px; letter-spacing: 1px; padding-left: 1px;
+  border: 1.5px solid rgba(176, 122, 69, .45);
+  box-shadow: 0 4px 12px rgba(74, 52, 32, .18), inset 0 1px 0 rgba(255, 255, 255, .8);
+  transition: transform .22s ease, box-shadow .22s ease;
+}
+/* thin inner ring, echoing the card back's monogram circle */
+.nav-logo::before {
+  content: ''; position: absolute; inset: 3px; border-radius: 50%;
+  border: 1px solid rgba(176, 122, 69, .35);
+}
+.nav-logo:hover {
+  transform: scale(1.08) rotate(-4deg);
+  box-shadow: 0 6px 18px rgba(74, 52, 32, .28), inset 0 1px 0 rgba(255, 255, 255, .85);
+}
+
 /* the menu is the positioning context for the underline + its sparks */
 .nav-menu { position: relative; display: flex; align-items: center; padding-right: 15px; padding-left: 15px; }
 .nav-links { display: flex; gap: 40px; list-style: none; margin: 0; padding: 0; }
@@ -114,14 +137,63 @@ body.game-open { overflow: hidden; }
 .beat-line { font-size: clamp(28px, 5vw, 56px); line-height: 1.1; color: var(--ink); font-weight: 700; letter-spacing: -.01em; max-width: 14em; }
 
 .beat-final { gap: 18px; }
-.invite-btn {
-  pointer-events: auto; cursor: pointer;
-  min-height: 52px; padding: 0 28px; border: none; border-radius: 999px;
-  background: var(--ink); color: #fff; font: inherit; font-weight: 700; font-size: 16px;
-  box-shadow: 0 12px 36px rgba(46,42,38,.35);
-  transition: transform .15s, filter .2s;
+
+/* ============================================================
+   GAME BUTTON — on-theme wood pill, styled like the lanyard strap
+   (deep wood band, cream stitching). The game reference is subtle:
+   the pulsing halo ring is the same invitation cue the game draws
+   under its stations, and a light sheen sweeps on hover.
+   ============================================================ */
+.game-btn {
+  position: relative; cursor: pointer; border: none; border-radius: 999px;
+  min-height: 54px; padding: 0 28px 0 24px; background: none; font: inherit;
+  transition: transform .18s ease;
 }
-.invite-btn:hover { filter: brightness(1.15); transform: translateY(-2px); }
+.game-btn:hover  { transform: translateY(-3px); }
+.game-btn:active { transform: translateY(0) scale(.98); }
+.invite-btn { pointer-events: auto; }  /* lives inside the hero's inert overlay */
+
+/* the pill body: wood gradient, soft warm drop shadow */
+.game-btn-scene {
+  position: absolute; inset: 0; border-radius: inherit; overflow: hidden;
+  background: linear-gradient(160deg, #8a5a2e, var(--wood-deep, #7a4f28) 55%, #66401f);
+  box-shadow: 0 12px 32px rgba(74, 52, 32, .38);
+}
+/* cream edge stitching — same detail as the lanyard's strap */
+.game-btn-scene::before {
+  content: ''; position: absolute; inset: 4px; border-radius: inherit;
+  border: 1.5px dashed rgba(223, 216, 205, .5);
+}
+/* hover sheen — one light-streak sweeps the pill */
+.game-btn-scene::after {
+  content: ''; position: absolute; top: -25%; bottom: -25%; left: 0; width: 36%;
+  background: linear-gradient(105deg, transparent, rgba(255, 250, 240, .35), transparent);
+  transform: skewX(-18deg) translateX(-160%);
+  transition: transform .7s ease;
+}
+.game-btn:hover .game-btn-scene::after { transform: skewX(-18deg) translateX(360%); }
+
+/* station halo — the same pulsing invitation ring the game uses */
+.game-btn-halo {
+  position: absolute; inset: -5px; border-radius: 999px; pointer-events: none;
+  border: 2px solid rgba(176, 122, 69, .8);   /* --wood */
+  animation: gbHalo 2.4s ease-out infinite;
+}
+@keyframes gbHalo {
+  0%        { transform: scale(.97); opacity: .8; }
+  70%, 100% { transform: scale(1.12); opacity: 0; }
+}
+
+.game-btn-label {
+  position: relative; z-index: 1; display: inline-flex; align-items: center; gap: 10px;
+  font-weight: 800; font-size: 16px; color: var(--cream, #dfd8cd);
+}
+.gb-ham { font-style: normal; font-size: 14px; line-height: 1; }
+.game-btn:hover .gb-ham { animation: gbHop .55s ease infinite; }
+@keyframes gbHop {
+  0%, 100% { transform: translateX(0); }
+  50%      { transform: translateX(3px); }
+}
 
 .link-btn {
   background: none; border: none; color: var(--wood-deep); font: inherit; font-weight: 700;
@@ -139,6 +211,169 @@ body.game-open { overflow: hidden; }
 
 @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: none; } }
 
+/* --- About: lanyard left, STAY CALM + bio right --- */
+@font-face {
+  font-family: 'Milkyway';
+  src: url('/fonts/milkyway.ttf') format('truetype');
+  font-display: swap;
+}
+.section-wide { max-width: 1200px; }
+.about-sec { position: relative; overflow: hidden; padding-top: 110px; padding-bottom: 60px; }
+/* giant ghost watermark — pure outline, barely there, pins the composition */
+.about-sec::before {
+  content: 'ABOUT'; position: absolute; top: 30px; right: -14px; z-index: 0;
+  font-size: clamp(120px, 21vw, 270px); font-weight: 900; line-height: 1;
+  letter-spacing: .02em;
+  color:  #8a7e74;                     /* faint wood fill */
+  -webkit-text-stroke: 2px rgba(176, 132, 91, 0.22);   /* stronger outline */
+  pointer-events: none; -webkit-user-select: none; user-select: none;
+}
+.about-sec > * { position: relative; }   /* content rides above the watermark */
+
+/* the section announces itself: eyebrow + hairline rule */
+.about-head { display: flex; align-items: center; gap: 5px; margin-bottom: 48px; }
+.about-eyebrow-about {
+  font-size: 20px; font-family: 'Inter', system-ui, sans-serif; letter-spacing: 4px; text-transform: uppercase;
+  font-weight: 700; color: var(--wood-deep); white-space: nowrap;
+}
+.about-eyebrow-me {
+  font-size: 20px; letter-spacing: 4px; text-transform: uppercase;
+  font-weight: 700; color: var(--ink); white-space: nowrap;
+}
+.about-rule { flex: 1; height: 2px; background: var(--line); opacity: .8; }
+
+/* the grid height is driven by the INTRO CONTENT, not a fixed tall row —
+   that's what kills the dead space under the text. The lanyard reads big
+   because its CARD is big (close camera in Lanyard.jsx), not because the
+   column is padded out. */
+.about-grid {
+  display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 60px;
+  align-items: stretch;
+}
+
+/* the badge hangs FREE — no border, no box; just a soft pool of light.
+   min-height keeps a floor for the strap's swing; it grows to match the
+   text column when that's taller. */
+.about-left { position: relative; min-height: 520px; }
+.about-left::before {
+  content: ''; position: absolute; inset: 0 -10%;
+  background: radial-gradient(ellipse 52% 46% at 50% 50%, rgba(233,221,205,.85), rgba(233,221,205,0) 70%);
+  pointer-events: none;
+}
+.about-hint {
+  position: absolute; bottom: 6px; left: 0; right: 0; text-align: center;
+  font-size: 13px; letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--ink-soft); opacity: .75; pointer-events: none;
+  font-weight: 600;white-space: nowrap;
+}
+.lanyard-loading {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: var(--ink-soft); font-size: 24px;
+}
+/* static fallback when WebGL/physics fail on a device */
+.lanyard-flat {
+  position: absolute; top: 8%; left: 50%; transform: translateX(-50%);
+  height: 70%; border-radius: 14px;
+  box-shadow: 0 24px 60px rgba(46,42,38,.35);
+}
+
+/* right column: top-aligned so STAY CALM sits up with the badge — no dead
+   space above it (the stats used to fill the lower half) */
+.about-right {
+  display: flex; flex-direction: column; justify-content: flex-start;
+  gap: 34px; min-width: 0;
+}
+
+.stay-wrap { display: flex; align-items: flex-end; gap: 20px; }
+.stay-hint {
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase;
+  color: var(--ink-soft); opacity: .65; white-space: nowrap;
+  margin-bottom: 0px; pointer-events: none;
+}
+
+.stay-calm {
+  margin: 0; -webkit-user-select: none; user-select: none; cursor: default;
+  font-size: clamp(72px, 6vw, 148px);
+  line-height: 0.88; letter-spacing: -0.03em;
+}
+.stay-calm span { display: block; }
+.stay-calm .stay {
+  color: var(--ink);
+  font-family: 'Milkyway', 'Inter', system-ui, sans-serif;
+  font-weight: 400;            /* display faces carry their own weight */
+  letter-spacing: .01em;       /* Milkyway sets tighter than Inter black */
+}
+.stay-calm .calm { font-weight: 900; color: var(--wood); }
+
+/* editorial bio: bigger, airier, with phrases that catch the eye */
+.about-bio {
+  color: var(--ink-soft); font-size: 18px; line-height: 1.75; max-width: 54ch; font-weight: 400;
+}
+.about-bio em { font-style: normal; font-weight: 700; color: var(--wood-deep); }
+/* magazine drop cap — the bio's opening letter set in the display face */
+.about-bio::first-letter {
+  font-family: 'Milkyway', 'Inter', system-ui, sans-serif;
+  font-size: 3.2em; line-height: .8; float: left;
+  padding: 8px 12px 0 0; color: var(--wood-deep);
+}
+
+/* the sign-off, tilted like a real signature */
+.about-sign {
+  font-family: 'Milkyway', 'Inter', system-ui, sans-serif;
+  font-size: 36px; color: var(--wood); margin: -18px 0 0;
+  align-self: flex-end; transform: rotate(-4deg);
+  -webkit-user-select: none; user-select: none;
+}
+
+.stat-row {
+  display: flex; flex-wrap: wrap; row-gap: 24px;
+  border-top: 2px solid var(--line); padding-top: 28px;
+}
+.stat { padding-right: 40px; }
+/* hairlines BETWEEN stats, not around them */
+.stat + .stat { padding-left: 40px; border-left: 2px solid var(--line); }
+.stat-num {
+  font-size: 42px; font-weight: 800; line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(120deg, var(--wood-deep), var(--wood));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.stat-label {
+  font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--ink-soft); margin-top: 4px;
+}
+
+/* tech stack marquee — floats free (no boxed strip), fading in at both
+   edges so the names seem to drift through the section's floor */
+.about-marquee {
+  margin-top: 64px; padding: 8px 0; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
+}
+.marquee-track { display: flex; width: max-content; animation: marquee 26s linear infinite; }
+.about-marquee:hover .marquee-track { animation-play-state: paused; }
+.marquee-set { display: flex; }
+.marquee-item {
+  display: inline-flex; align-items: center; gap: 34px; padding-right: 34px;
+  font-size: 20px; font-weight: 800; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--ink); white-space: nowrap;
+}
+.marquee-item i { font-style: normal; color: var(--wood); font-size: 14px; }
+/* every other name is an outline — solid/hollow rhythm as the strip moves */
+.marquee-set .marquee-item:nth-child(even) {
+  color: transparent; -webkit-text-stroke: 1.3px var(--ink-soft);
+}
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+@media (max-width: 900px) {
+  .about-grid { grid-template-columns: 1fr; gap: 24px; }
+  .about-left { min-height: 500px; }
+  .stay-calm { font-size: clamp(64px, 16vw, 110px); }
+  .stay-hint { display: none; }         /* cursor toy — pointless on touch */
+  .about-sec::before { font-size: 26vw; top: 60px; }
+  .about-marquee { margin-top: 48px; }
+}
+
 /* --- Projects grid --- */
 .proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
 .proj-card {
@@ -153,19 +388,203 @@ body.game-open { overflow: hidden; }
 .proj-links a { color: var(--ink); font-weight: 700; font-size: 13px; text-decoration: none; }
 .proj-links a:hover { color: var(--wood-deep); }
 
-/* --- Launch button (bottom-right), and its in-game twin --- */
-.game-launch-btn, .game-exit-btn {
-  position: fixed; right: 22px; bottom: 22px; z-index: 60;
+/* --- Launch button (bottom-right): the .game-btn scene handles its look,
+       this class only pins it to the corner --- */
+.game-launch-btn { position: fixed; right: 22px; bottom: 22px; z-index: 60; }
+
+/* --- In-game exit button keeps the plain pill (it sits INSIDE the world —
+       no need to advertise the world from within it) --- */
+.game-exit-btn {
+  position: fixed; right: 22px; bottom: 22px; z-index: 70;
   min-height: 48px; padding: 0 22px; cursor: pointer;
-  background: var(--ink); color: var(--cream); font-weight: 800; font-size: 15px;
-  border: none; border-radius: 999px; box-shadow: 0 10px 30px rgba(46,42,38,.35);
+  background: var(--cream); color: var(--ink); font-weight: 800; font-size: 15px;
+  border: 1px solid var(--line); border-radius: 999px;
+  box-shadow: 0 10px 30px rgba(46,42,38,.35);
   transition: transform .12s, filter .2s;
 }
-.game-launch-btn:hover, .game-exit-btn:hover { filter: brightness(1.12); }
-.game-launch-btn:active, .game-exit-btn:active { transform: translateY(1px); }
-.game-exit-btn {
-  background: var(--cream); color: var(--ink); border: 1px solid var(--line); z-index: 70;
+.game-exit-btn:hover { filter: brightness(1.12); }
+.game-exit-btn:active { transform: translateY(1px); }
+
+/* --- Hamster loader — shown while the game world loads, and on exit.
+       Themed to the website's warm palette: taupe backdrop, wood-tone
+       wheel, charcoal letterspaced label. --- */
+.hamster-loader {
+  position: fixed; inset: 0; z-index: 95;   /* above the game shell + its buttons */
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px;
+  background: radial-gradient(ellipse at center, var(--surface, #e9ddcd), var(--bg, #beb09e));
+  opacity: 1; transition: opacity .4s ease;
 }
+.hamster-loader.out { opacity: 0; pointer-events: none; }
+
+/* ---- the wheel + hamster: replica of the classic uiverse.io loader
+        (by Nawsome, MIT). Everything is ems, scaled by font-size. ---- */
+.wheel-and-hamster {
+  --dur: 1s;
+  position: relative;
+  width: 12em; height: 12em;
+  font-size: 14px;
+}
+.wheel-and-hamster .wheel,
+.wheel-and-hamster .hamster,
+.wheel-and-hamster .hamster div,
+.wheel-and-hamster .spoke { position: absolute; }
+
+.wheel-and-hamster .wheel,
+.wheel-and-hamster .spoke {
+  border-radius: 50%;
+  top: 0; left: 0; width: 100%; height: 100%;
+}
+.wheel-and-hamster .wheel {
+  /* wheel rim in the site's walnut wood instead of the original grey */
+  background: radial-gradient(100% 100% at center, hsla(28, 42%, 48%, 0) 47.8%, hsl(28, 42%, 48%) 48%);
+  z-index: 2;
+}
+.wheel-and-hamster .hamster {
+  animation: hamster var(--dur) ease-in-out infinite;
+  top: 50%; left: calc(50% - 3.5em);
+  width: 7em; height: 3.75em;
+  transform: rotate(4deg) translate(-0.8em, 1.85em);
+  transform-origin: 50% 0;
+  z-index: 1;
+}
+.wheel-and-hamster .hamster__head {
+  animation: hamsterHead var(--dur) ease-in-out infinite;
+  background: hsl(30, 90%, 55%);
+  border-radius: 70% 30% 0 100% / 40% 25% 25% 60%;
+  box-shadow: 0 -0.25em 0 hsl(30, 90%, 80%) inset, 0.75em -1.55em 0 hsl(30, 90%, 90%) inset;
+  top: 0; left: -2em; width: 2.75em; height: 2.5em;
+  transform-origin: 100% 50%;
+}
+.wheel-and-hamster .hamster__ear {
+  animation: hamsterEar var(--dur) ease-in-out infinite;
+  background: hsl(0, 90%, 85%);
+  border-radius: 50%;
+  box-shadow: -0.25em 0 hsl(30, 90%, 55%) inset;
+  top: -0.25em; right: -0.25em; width: 0.75em; height: 0.75em;
+  transform-origin: 50% 75%;
+}
+.wheel-and-hamster .hamster__eye {
+  animation: hamsterEye var(--dur) linear infinite;
+  background-color: hsl(0, 0%, 0%);
+  border-radius: 50%;
+  top: 0.375em; left: 1.25em; width: 0.5em; height: 0.5em;
+}
+.wheel-and-hamster .hamster__nose {
+  background: hsl(0, 90%, 75%);
+  border-radius: 35% 65% 85% 15% / 70% 50% 50% 30%;
+  top: 0.75em; left: 0; width: 0.2em; height: 0.25em;
+}
+.wheel-and-hamster .hamster__body {
+  animation: hamsterBody var(--dur) ease-in-out infinite;
+  background: hsl(30, 90%, 90%);
+  border-radius: 50% 30% 50% 30% / 15% 60% 40% 40%;
+  box-shadow: 0.1em 0.75em 0 hsl(30, 90%, 55%) inset, 0.15em -0.5em 0 hsl(30, 90%, 80%) inset;
+  top: 0.25em; left: 2em; width: 4.5em; height: 3em;
+  transform-origin: 17% 50%;
+  transform-style: preserve-3d;
+}
+.wheel-and-hamster .hamster__limb--fr,
+.wheel-and-hamster .hamster__limb--fl {
+  clip-path: polygon(0 0, 100% 0, 70% 80%, 60% 100%, 0% 100%, 40% 80%);
+  top: 2em; left: 0.5em; width: 1em; height: 1.5em;
+  transform-origin: 50% 0;
+}
+.wheel-and-hamster .hamster__limb--fr {
+  animation: hamsterFRLimb var(--dur) linear infinite;
+  background: linear-gradient(hsl(30, 90%, 80%) 80%, hsl(0, 90%, 75%) 80%);
+  transform: rotate(15deg) translateZ(-1px);
+}
+.wheel-and-hamster .hamster__limb--fl {
+  animation: hamsterFLLimb var(--dur) linear infinite;
+  background: linear-gradient(hsl(30, 90%, 90%) 80%, hsl(0, 90%, 85%) 80%);
+  transform: rotate(15deg);
+}
+.wheel-and-hamster .hamster__limb--br,
+.wheel-and-hamster .hamster__limb--bl {
+  border-radius: 0.75em 0.75em 0 0;
+  clip-path: polygon(0 0, 100% 0, 100% 30%, 70% 90%, 70% 100%, 30% 100%, 40% 90%, 0% 30%);
+  top: 1em; left: 2.8em; width: 1.5em; height: 2.5em;
+  transform-origin: 50% 30%;
+}
+.wheel-and-hamster .hamster__limb--br {
+  animation: hamsterBRLimb var(--dur) linear infinite;
+  background: linear-gradient(hsl(30, 90%, 80%) 90%, hsl(0, 90%, 75%) 90%);
+  transform: rotate(-25deg) translateZ(-1px);
+}
+.wheel-and-hamster .hamster__limb--bl {
+  animation: hamsterBLLimb var(--dur) linear infinite;
+  background: linear-gradient(hsl(30, 90%, 90%) 90%, hsl(0, 90%, 85%) 90%);
+  transform: rotate(-25deg);
+}
+.wheel-and-hamster .hamster__tail {
+  animation: hamsterTail var(--dur) linear infinite;
+  background: hsl(0, 90%, 85%);
+  border-radius: 0.25em 50% 50% 0.25em;
+  box-shadow: 0 -0.2em 0 hsl(0, 90%, 75%) inset;
+  top: 1.5em; right: -0.5em; width: 1em; height: 0.5em;
+  transform: rotate(30deg) translateZ(-1px);
+  transform-origin: 0.25em 0.25em;
+}
+.wheel-and-hamster .spoke {
+  animation: spoke var(--dur) linear infinite;
+  /* hub + crossbar in wood tones to match the rim */
+  background:
+    radial-gradient(100% 100% at center, hsl(28, 42%, 48%) 4.8%, hsla(28, 42%, 48%, 0) 5%),
+    linear-gradient(hsla(28, 40%, 44%, 0) 46.9%, hsl(28, 44%, 56%) 47% 52.9%, hsla(28, 44%, 56%, 0) 53%) 50% 50% / 99% 99% no-repeat;
+}
+
+/* the gallop: whole hamster rocks, head/ear/body/limbs/tail beat at 8 steps
+   per cycle (the 12.5% stops), the eye blinks near the end of each lap */
+@keyframes hamster {
+  from, to { transform: rotate(4deg) translate(-0.8em, 1.85em); }
+  50%      { transform: rotate(0)    translate(-0.8em, 1.85em); }
+}
+@keyframes hamsterHead {
+  from, 25%, 50%, 75%, to    { transform: rotate(0); }
+  12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(8deg); }
+}
+@keyframes hamsterEye {
+  from, 90%, to { transform: scaleY(1); }
+  95%           { transform: scaleY(0); }
+}
+@keyframes hamsterEar {
+  from, 25%, 50%, 75%, to    { transform: rotate(0); }
+  12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(12deg); }
+}
+@keyframes hamsterBody {
+  from, 25%, 50%, 75%, to    { transform: rotate(0); }
+  12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(-2deg); }
+}
+@keyframes hamsterFRLimb {
+  from, 25%, 50%, 75%, to    { transform: rotate(50deg)  translateZ(-1px); }
+  12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(-30deg) translateZ(-1px); }
+}
+@keyframes hamsterFLLimb {
+  from, 25%, 50%, 75%, to    { transform: rotate(-30deg); }
+  12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(50deg); }
+}
+@keyframes hamsterBRLimb {
+  from, 25%, 50%, 75%, to    { transform: rotate(-60deg) translateZ(-1px); }
+  12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(20deg)  translateZ(-1px); }
+}
+@keyframes hamsterBLLimb {
+  from, 25%, 50%, 75%, to    { transform: rotate(20deg); }
+  12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(-60deg); }
+}
+@keyframes hamsterTail {
+  from, 25%, 50%, 75%, to    { transform: rotate(30deg) translateZ(-1px); }
+  12.5%, 37.5%, 62.5%, 87.5% { transform: rotate(10deg) translateZ(-1px); }
+}
+@keyframes spoke { from { transform: rotate(0); } to { transform: rotate(-1turn); } }
+
+.hl-label {
+  color: var(--ink, #2e2a26); font-size: 13px; font-weight: 700; letter-spacing: 4px;
+}
+.hl-dots span { animation: hl-blink 1.2s infinite; }
+.hl-dots span:nth-child(2) { animation-delay: .2s; }
+.hl-dots span:nth-child(3) { animation-delay: .4s; }
+@keyframes hl-blink { 0%, 60%, 100% { opacity: .15; } 30% { opacity: 1; } }
 
 /* --- Game shell: full-screen overlay; hidden (kept alive) when exited --- */
 .game-shell { position: fixed; inset: 0; z-index: 50; }

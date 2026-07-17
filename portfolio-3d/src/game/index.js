@@ -15,6 +15,18 @@ import {
   CAM_OFF as CAM_OFF_XYZ, CAM_FOV, CAM_LOOK_UP, ZOOM_MIN, ZOOM_MAX,
 } from './config.js';
 
+// Tell the site when every queued asset (character + station GLBs) has
+// arrived — the launch loader (hamster wheel) hides on this signal. All the
+// GLTFLoaders here use THREE's DefaultLoadingManager, whose onLoad fires
+// when its queue empties; we forward the FIRST firing as a window event.
+let readyFired = false;
+THREE.DefaultLoadingManager.onLoad = () => {
+  if (readyFired) return;
+  readyFired = true;
+  window.__gameReady = true;                 // for listeners that attach late
+  dispatchEvent(new Event('game:ready'));
+};
+
 // ============================================================
 // 1. SCENE BASICS — the "canvas, camera, renderer" trinity.
 //    scene = the world tree (like the DOM)
@@ -217,12 +229,15 @@ for (const s of STATIONS) {
       s.group = g;
     });
     // floor halo so the spot is visible before the model loads / from afar
-    const halo = new THREE.Mesh(new THREE.CircleGeometry(1.6, 40),
-      new THREE.MeshBasicMaterial({ color: s.color, transparent: true, opacity: 0.25,
-        blending: THREE.AdditiveBlending, depthWrite: false }));
-    halo.rotation.x = -Math.PI / 2; halo.position.set(s.x, 0.03, s.z);
-    scene.add(halo);
-    s.halo = halo;
+    // (not for decor props — scenery shouldn't advertise itself)
+    if (!s.decor) {
+      const halo = new THREE.Mesh(new THREE.CircleGeometry(1.6, 40),
+        new THREE.MeshBasicMaterial({ color: s.color, transparent: true, opacity: 0.25,
+          blending: THREE.AdditiveBlending, depthWrite: false }));
+      halo.rotation.x = -Math.PI / 2; halo.position.set(s.x, 0.03, s.z);
+      scene.add(halo);
+      s.halo = halo;
+    }
   } else {
     const pillar = new THREE.Mesh(
       new THREE.BoxGeometry(0.9, 1.6, 0.9),
@@ -406,6 +421,7 @@ let panelOpen = false;
 function nearestStation() {
   let best = null, bd = INTERACT_RADIUS;
   for (const s of STATIONS) {
+    if (s.decor) continue;               // scenery — never interactive
     const d = Math.hypot(player.position.x - s.x, player.position.z - s.z);
     if (d < bd) { bd = d; best = s; }
   }
