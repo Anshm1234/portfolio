@@ -100,6 +100,7 @@ export const ROCK_COUNT = 3;           // boulders, half-buried in the turf
 export const SPARK_N = 90;             // particle pool size
 
 // --- Player / physics ------------------------------------------
+export const INTERACT_RADIUS = 3.8;  // how close (units) "E" reaches a station
 export const SPEED        = 7;       // walk speed (units/sec)
 export const GRAVITY      = 20;        // edge-fall gravity
 export const SKY_GRAVITY  = 7;         // respawn drop floats so the Fall clip reads

@@ -11,7 +11,7 @@ import {
   SKY_COLOR, TILE_A, TILE_B, FOG_NEAR, FOG_FAR,
   HEMI_SKY, HEMI_GROUND, HEMI_INTENSITY, SUN_COLOR, SUN_INTENSITY, SUN_POS, SPOT_INTENSITY,
   SIZE, HALF,
-  SPEED, GRAVITY, SKY_GRAVITY, FALL_IMPACT, SKY_SPAWN_Y, CHAR_HEIGHT,
+  INTERACT_RADIUS, SPEED, GRAVITY, SKY_GRAVITY, FALL_IMPACT, SKY_SPAWN_Y, CHAR_HEIGHT,
   CAM_OFF as CAM_OFF_XYZ, CAM_FOV, CAM_LOOK_UP, ZOOM_MIN, ZOOM_MAX,
 } from './config.js';
 
@@ -404,7 +404,7 @@ document.getElementById('panel-close').onclick = closePanel;
 let panelOpen = false;
 
 function nearestStation() {
-  let best = null, bd = 2.2;
+  let best = null, bd = INTERACT_RADIUS;
   for (const s of STATIONS) {
     const d = Math.hypot(player.position.x - s.x, player.position.z - s.z);
     if (d < bd) { bd = d; best = s; }
