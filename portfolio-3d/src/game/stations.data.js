@@ -48,6 +48,13 @@ export const STATIONS = [
     model: '/models/fence.glb', fit: 1.8, rotY: 0,
   },
   {
+    // Central signpost landmark — mossy wooden post with About/Projects/
+    // Contact boards. Pure scenery; rotY faces its boards at the corner
+    // camera (which looks in from +x,+z, i.e. 45°).
+    id: 'signpost', decor: true, x: 2, z: -2,
+    model: '/models/direction.glb', fit: 5, rotY: Math.PI / 4,
+  },
+  {
     // The corner camera looks from (+x,+z) toward the middle, so screen-right
     // is the (+x,-z) corner — that's this one. Platform edge is at ±17.5.
     id: 'tree', name: 'SIT UNDER THE TREE', color: 0xe08a3c, x: 16.5, z: -15.5,

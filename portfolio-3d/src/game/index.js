@@ -183,6 +183,20 @@ for (const s of STATIONS) {
           // golden-tan the model uses for `ArmFur` so body + arms match.
           if (/hamsterfur/i.test(c.name || '')) c.color = new THREE.Color(0.74, 0.40, 0.16);
 
+          // The signpost (direction.glb) ships its `AgedWood` and `SignPaint`
+          // materials with NO base color either — everything but the moss
+          // renders flat white. Paint them warm wooden shades (matching the
+          // site's walnut palette): weathered walnut for the structure, a
+          // lighter carved-oak for the raised board letters so they read.
+          if (/agedwood/i.test(c.name || '')) {
+            c.color = new THREE.Color(0x7a4f28);        // --wood-deep walnut
+            if ('roughness' in c) c.roughness = 0.85;   // weathered, matte
+          }
+          if (/signpaint/i.test(c.name || '')) {
+            c.color = new THREE.Color(0xcaa96e);        // lighter oak lettering
+            if ('roughness' in c) c.roughness = 0.7;
+          }
+
           // AUTHORED glow vs SEEDED glow:
           //  • The desk ships real emissive parts (Screen_Emit, Amber_LED…) —
           //    that glow is deliberate, so keep it at the level it was authored.

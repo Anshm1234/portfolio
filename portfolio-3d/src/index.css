@@ -318,9 +318,11 @@ body.game-open { overflow: hidden; }
 }
 
 /* the sign-off, tilted like a real signature */
+/* signs off the bio — kept LEFT (under the paragraph) so it never collides
+   with the fixed "Know me through a game" launch button in the bottom-right */
 .about-sign {
   font-family: 'Milkyway', 'Inter', system-ui, sans-serif;
-  font-size: 36px; color: var(--wood); margin: -18px 0 0;
+  font-size: 34px; color: var(--wood); margin: -8px 0 0;
   align-self: flex-end; transform: rotate(-4deg);
   -webkit-user-select: none; user-select: none;
 }

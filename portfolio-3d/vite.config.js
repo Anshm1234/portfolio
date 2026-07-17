@@ -6,23 +6,21 @@ export default defineConfig({
   build: {
     rolldownOptions: {
       output: {
-        // Split stable vendor code into named chunks:
-        //  • caching — visitors re-download only what changed (our code
-        //    changes never invalidate the react/gsap chunks)
-        //  • parallelism — the browser fetches these alongside the entry
-        //    instead of one fat file
+        // Only group the vendors that first paint ACTUALLY needs — rolldown
+        // hoists every *manually grouped* vendor chunk into the entry HTML's
+        // <link rel="modulepreload"> list. Grouping `three` (758KB) and
+        // `physics` (2.4MB) here made the browser eagerly fetch 3.1MB of JS on
+        // first paint, even though both are only reached via dynamic import.
+        //   • react-vendor / gsap — used by the entry (Hero) → correct to preload
+        //   • three / physics — NOT grouped, so rolldown emits them as async
+        //     chunks that load on demand (game launch / lanyard scroll-in) and
+        //     never touch first paint. three is shared by both the game and the
+        //     lanyard, so rolldown keeps it in its own shared async chunk —
+        //     the game no longer risks pulling in the rapier physics blob.
         codeSplitting: {
           groups: [
             { name: 'react-vendor', test: /node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
             { name: 'gsap', test: /node_modules[\\/]gsap[\\/]/ },
-            // three MUST be its own chunk: it's shared by the game AND the
-            // Lanyard — without this group it gets swallowed into `physics`,
-            // and launching the game would download 3MB of rapier for nothing
-            { name: 'three', test: /node_modules[\\/]three[\\/]/ },
-            // the rapier physics engine (inlined WASM) is the huge one —
-            // keep it separate from drei/meshline so the Lanyard's pieces
-            // download in parallel when About scrolls near
-            { name: 'physics', test: /node_modules[\\/](@dimforge|@react-three[\\/]rapier)[\\/]/ },
           ],
         },
       },
