@@ -442,19 +442,238 @@ html.welcome-open, body.welcome-open { overflow: hidden; }
   .about-marquee { margin-top: 48px; }
 }
 
-/* --- Projects grid --- */
-.proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
-.proj-card {
-  background: var(--surface); border: 1px solid var(--line);
-  border-left: 3px solid var(--accent, var(--wood)); border-radius: 14px; padding: 18px;
-  box-shadow: 0 6px 18px rgba(60,48,36,.12);
+/* ============================================================
+    onS — horizontal gallery. Desktop: the section pins and the track
+   slides sideways on scroll (GSAP). Mobile: native scroll-snap swipe strip.
+   Cards grow + spotlight on hover; a click expands one in place (FLIP) into
+   the detail view.
+   ============================================================ */
+.projects-sec {
+  position: relative; height: 100vh; overflow: hidden;
+  display: flex; flex-direction: column;
 }
-.proj-card h3 { font-size: 18px; color: var(--ink); }
-.proj-stack { color: var(--wood-deep); font-size: 12.5px; font-weight: 700; margin: 4px 0 8px; }
-.proj-desc { color: var(--ink-soft); font-size: 14px; }
-.proj-links { margin-top: 12px; display: flex; gap: 14px; }
-.proj-links a { color: var(--ink); font-weight: 700; font-size: 13px; text-decoration: none; }
-.proj-links a:hover { color: var(--wood-deep); }
+/* header stays put while the cards slide under it */
+.projects-head {
+  flex: 0 0 auto; display: flex; align-items: center; gap: 12px;
+  padding: 46px max(7vw, 32px) 0;
+}
+.ph-eyebrow-a, .ph-eyebrow-b {
+  font-size: 20px; letter-spacing: 4px; text-transform: uppercase; font-weight: 700;
+}
+.ph-eyebrow-a { color: var(--wood-deep); }
+.ph-eyebrow-b { color: var(--ink); }
+.ph-rule { flex: 1; height: 2px; background: var(--line); opacity: .7; }
+.ph-hint { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-soft); opacity: .7; }
+
+/* giant ghost "PROJECTS" watermark — identical treatment to About's ABOUT
+   (faint wood fill + wood outline), just sized for the longer word */
+.projects-sec::before {
+  content: 'PROJECTS'; position: absolute; top: 26px; right: -14px; z-index: 0;
+  font-size: clamp(100px, 17vw, 240px); font-weight: 1000; line-height: 1; letter-spacing: .02em;
+  color: rgba(244, 229, 214, 0.07);
+  -webkit-text-stroke: 2px rgba(167, 120, 76, 0.22);
+  pointer-events: none; -webkit-user-select: none; user-select: none;
+}
+.proj-viewport, .proj-progress { position: relative; z-index: 1; }
+
+/* intro title panel — "WORK IN PEACE", same face/colours as About's STAY CALM */
+.proj-intro {
+  flex: 0 0 auto; height: 100%; width: min(60vw, 700px);
+  display: flex; flex-direction: column; justify-content: flex-start;
+  padding: 0 max(3vw, 24px) 0 max(7vw, 40px);
+}
+.work-peace {
+  margin: 0; -webkit-user-select: none; user-select: none; cursor: default;
+  font-size: clamp(60px, 8vw, 160px); line-height: 0.86; letter-spacing: -0.03em;
+}
+.work-peace span { display: block; }
+.work-peace .wp-1 {
+  margin-top: 200px; color: var(--ink); font-family: 'Milkyway', 'Inter', system-ui, sans-serif;
+  font-weight: 400; letter-spacing: .01em;
+}
+.work-peace .wp-2 {font-weight: 900; color: var(--wood); }
+.wp-hint { margin-top: 26px; font-size: 12px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--ink-soft); opacity: .9; }
+
+/* top-anchor the track just below the top so the title + cards overlap the
+   LOWER ~25% of the PROJECTS watermark (its upper part stays visible) */
+.proj-viewport {
+  flex: 1 1 auto; display: flex; align-items: flex-start; overflow: hidden; min-height: 0;
+  padding-top: clamp(175px, 22vh, 205px);
+}
+.proj-track { display: flex; align-items: flex-start; gap: 32px; padding: 0 max(7vw, 40px); height: 100%; }
+
+/* horizontal scroll progress bar (desktop only) */
+.proj-progress {
+  position: absolute; left: max(7vw, 32px); right: max(7vw, 32px); bottom: 24px;
+  height: 3px; border-radius: 2px; background: rgba(122, 79, 40, .15);
+}
+.proj-progress-fill {
+  display: block; height: 100%; border-radius: 2px; background: var(--wood-deep);
+  transform: scaleX(0); transform-origin: left;
+}
+
+/* --- card: cover preview on top, content below --- */
+.proj-card2 {
+  position: relative; flex: 0 0 auto;
+  width: clamp(300px, 42vw, 460px); height: min(65vh, 650px);
+  border-radius: 22px; overflow: hidden; cursor: pointer;
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 14px 40px rgba(74, 52, 32, .14);
+  transition: transform .35s cubic-bezier(.2, .7, .2, 1), box-shadow .35s;
+}
+.proj-card2:hover { transform: translateY(-10px) scale(1.03); box-shadow: 0 26px 64px rgba(74, 52, 32, .26); }
+.proj-card2:focus-visible { outline: 2px solid var(--wood-deep); outline-offset: 3px; }
+/* cursor-tracking spotlight, above the cover */
+.proj-card2::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+  background: radial-gradient(340px circle at var(--mx, 50%) var(--my, 0%), rgba(255, 246, 234, .16), transparent 55%);
+  opacity: 0; transition: opacity .3s;
+}
+.proj-card2:hover::before { opacity: 1; }
+
+/* cover */
+.pc-cover { position: relative; flex: 0 0 auto; height: 44%; overflow: hidden; }
+.pc-cover-img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s ease; }
+.proj-card2:hover .pc-cover-img { transform: scale(1.06); }
+.pc-cover::after {          /* wash so the index + hint read on any image */
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(46, 42, 38, .04), rgba(46, 42, 38, .34));
+}
+/* big ghost index — ALTERNATES: odd cards top-left, even cards bottom-left */
+.pc-index {
+  position: absolute; left: 20px; z-index: 2;
+  font-family: 'Milkyway', 'Inter', system-ui, sans-serif;
+  font-size: 62px; line-height: 1; color: var(--cream); opacity: .92;
+  text-shadow: 0 4px 14px rgba(46, 42, 38, .4);
+}
+.proj-card2:nth-of-type(odd)  .pc-index { top: 10px; }
+.proj-card2:nth-of-type(even) .pc-index { bottom: 6px; }
+.pc-hint {
+  position: absolute; right: 16px; top: 14px; z-index: 2;
+  font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--cream);
+  background: rgba(46, 42, 38, .45); padding: 6px 12px; border-radius: 999px;
+  opacity: 0; transform: translateY(-4px); transition: .3s;
+}
+.proj-card2:hover .pc-hint { opacity: 1; transform: none; }
+
+/* body */
+.pc-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 22px 26px 24px; }
+.pc-title { font-size: clamp(24px, 2.6vw, 34px); line-height: 1.05; letter-spacing: -.01em; color: var(--ink); }
+.pc-desc {
+  color: var(--ink-soft); font-size: 15px; line-height: 1.6; margin-top: 12px;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pc-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; padding-top: 16px; }
+.pc-chip {
+  font-size: 11.5px; font-weight: 700; letter-spacing: .3px; color: var(--wood-deep);
+  background: rgba(122, 79, 40, .1); border: 1px solid rgba(122, 79, 40, .18); border-radius: 999px; padding: 5px 11px;
+}
+.pc-links { display: flex; gap: 18px; margin-top: 14px; }
+.pc-link { position: relative; z-index: 4; font-size: 13px; font-weight: 800; color: var(--ink); text-decoration: none; }
+.pc-link:hover { color: var(--wood-deep); }
+
+/* per-card warm cover variety for placeholder tiles */
+.proj-card2:nth-of-type(3n+1) .pc-cover .shot-ph { background: linear-gradient(150deg, #8a5a2e, #5e3c1d); }
+.proj-card2:nth-of-type(3n+2) .pc-cover .shot-ph { background: linear-gradient(150deg, #a86a3e, #7a4326); }
+.proj-card2:nth-of-type(3n+3) .pc-cover .shot-ph { background: linear-gradient(150deg, #6f6a3c, #4f4a28); }
+.pc-cover .shot-ph span { opacity: .5; font-size: 12px; }
+
+/* trailing "more soon" block gives the track some run-out */
+.proj-end { flex: 0 0 auto; width: 34vw; height: min(60vh, 500px); display: flex; align-items: flex-end; padding: 0 0 24px 10px; }
+.proj-end span { font-family: 'Milkyway', 'Inter', system-ui, sans-serif; font-size: clamp(28px, 4vw, 52px); color: var(--wood); opacity: .70; }
+
+/* --- detail: expands in place from the card (FLIP), themed panel --- */
+body.pd-open { overflow: hidden; }
+.pd-overlay {
+  position: fixed; inset: 0; z-index: 120; display: grid; place-items: center;
+  background: rgba(46, 42, 38, .5);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+.pd-panel {
+  position: relative; width: min(1100px, 92vw); height: min(680px, 88vh);
+  border-radius: 24px; overflow: hidden; will-change: transform;
+  background: linear-gradient(160deg, var(--surface), #e0d0ba);
+  border: 1px solid var(--line); box-shadow: 0 40px 100px rgba(46, 42, 38, .4);
+}
+.pd-close {
+  position: absolute; top: 16px; right: 16px; z-index: 5; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--cream); color: var(--ink); font-size: 15px; cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.pd-close:hover { background: var(--wood); color: var(--cream); }
+.pd-content { display: grid; grid-template-columns: 1.1fr 1fr; height: 100%; }
+
+.pd-left { padding: 26px; display: flex; flex-direction: column; gap: 16px; justify-content: center; min-height: 0; }
+/* desktop browser-window frame around the shot — makes it read as a real app */
+.pd-browser {
+  border-radius: 14px; overflow: hidden; background: var(--cream);
+  border: 1px solid var(--line); box-shadow: 0 18px 44px rgba(46, 42, 38, .22);
+}
+.pd-browser-bar {
+  display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 14px;
+  background: linear-gradient(180deg, #d8c8ad, #cbb896); border-bottom: 1px solid rgba(122, 79, 40, .2);
+}
+.pd-dot { width: 10px; height: 10px; border-radius: 50%; }
+.pd-dot:nth-child(1) { background: #c9776a; }
+.pd-dot:nth-child(2) { background: #d6b06a; }
+.pd-dot:nth-child(3) { background: #8ba36a; }
+.pd-url {
+  margin-left: 8px; font-size: 11px; color: var(--ink-soft);
+  background: var(--surface); padding: 4px 14px; border-radius: 6px; letter-spacing: .3px;
+}
+.pd-hero { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+.shot-ph {
+  display: grid; place-items: center; text-align: center;
+  background: linear-gradient(150deg, var(--wood), var(--wood-deep));
+  color: var(--cream); font-weight: 800; letter-spacing: 1px; text-transform: uppercase; font-size: 14px;
+}
+.pd-thumbs { display: flex; gap: 10px; flex: 0 0 auto; }
+.pd-thumb { width: 74px; height: 52px; padding: 0; border-radius: 10px; overflow: hidden; cursor: pointer;
+  border: 2px solid transparent; background: none; transition: border-color .2s; }
+.pd-thumb.on { border-color: var(--wood); }
+.pd-thumb-img { width: 100%; height: 100%; object-fit: cover; font-size: 9px; }
+
+.pd-right { padding: 44px 40px 30px; display: flex; flex-direction: column; min-height: 0; }
+.pd-title { font-size: clamp(30px, 3.4vw, 52px); line-height: 1.02; letter-spacing: -.02em; color: var(--ink); }
+.pd-stack {
+  margin: 18px 0 22px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.pd-stack-track { display: flex; width: max-content; animation: marquee 14s linear infinite; }
+.pd-stack:hover .pd-stack-track { animation-play-state: paused; }
+.pd-stack-set { display: flex; }
+.pd-chip {
+  white-space: nowrap; margin-right: 12px; font-size: 13px; font-weight: 800; letter-spacing: .4px; color: var(--wood-deep);
+  background: rgba(122, 79, 40, .1); border: 1px solid rgba(122, 79, 40, .2); border-radius: 999px; padding: 7px 14px;
+}
+.pd-desc { color: var(--ink-soft); font-size: 17px; line-height: 1.7; flex: 1 1 auto; overflow: auto; }
+.pd-links { display: flex; gap: 14px; margin-top: 18px; padding-top: 22px; border-top: 1px solid var(--line); }
+.pd-link {
+  font-size: 14px; font-weight: 800; text-decoration: none; color: var(--ink);
+  padding: 12px 22px; border-radius: 999px; border: 1px solid var(--line); transition: .2s;
+}
+.pd-link:hover { border-color: var(--wood); color: var(--wood-deep); }
+.pd-link-solid { background: var(--wood-deep); color: var(--cream); border-color: var(--wood-deep); }
+.pd-link-solid:hover { background: var(--wood); color: var(--cream); border-color: var(--wood); }
+
+/* mobile: no pin — a native swipe strip; detail stacks vertically */
+@media (max-width: 759px) {
+  .projects-sec { height: auto; overflow: visible; padding: 30px 0 40px; }
+  .proj-intro { width: 86vw; height: auto; padding: 30px max(6vw, 20px) 10px; scroll-snap-align: center; }
+  .work-peace { font-size: clamp(54px, 15vw, 92px); }
+  .proj-viewport { overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; padding-top: 0; }
+  .proj-track { transform: none !important; padding: 12px max(6vw, 20px); }
+  .proj-card2 { scroll-snap-align: center; width: 82vw; height: 62vh; }
+  .proj-card2:hover { transform: none; }        /* no hover-grow on touch */
+  .proj-progress { display: none; }
+  .proj-end { width: 60vw; }
+  .pd-panel { height: 90vh; width: 94vw; }
+  .pd-content { grid-template-columns: 1fr; grid-template-rows: 44% 56%; overflow: hidden; }
+  .pd-right { padding: 22px 22px 24px; overflow: auto; }
+  .pd-desc { font-size: 15.5px; }
+}
 
 /* --- Launch button (bottom-right): the .game-btn scene handles its look,
        this class only pins it to the corner --- */
