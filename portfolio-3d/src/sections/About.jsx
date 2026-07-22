@@ -158,11 +158,29 @@ export default function About() {
 
   useEffect(() => { buildCardFace().then(setFace); }, []);
 
-  // mount the Lanyard only when the section approaches the viewport
+  // Warm the heavy Lanyard bundle DURING IDLE, well before the section is in
+  // view. Importing the module pulls its chunk (three + physics + drei) AND
+  // fires its top-level useGLTF.preload(card.glb) — so ~5MB is already cached
+  // by the time you scroll down, instead of downloading on arrival. Runs on
+  // requestIdleCallback so it never competes with first paint / hero frames.
+  useEffect(() => {
+    let cancelled = false;
+    const warm = () => { if (!cancelled) import('../components/lanyard/Lanyard.jsx'); };
+    const id = 'requestIdleCallback' in window
+      ? requestIdleCallback(warm, { timeout: 3500 })
+      : setTimeout(warm, 2500);
+    return () => {
+      cancelled = true;
+      if ('cancelIdleCallback' in window) cancelIdleCallback(id); else clearTimeout(id);
+    };
+  }, []);
+
+  // Mount the Lanyard as the section approaches — a wide margin (~1.2 screens)
+  // so on a fast scroll it's already mounting before it's actually on screen.
   useEffect(() => {
     const io = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) { setNearView(true); io.disconnect(); }
-    }, { rootMargin: '300px 0px' });
+    }, { rootMargin: '1200px 0px' });
     io.observe(sectionRef.current);
     return () => io.disconnect();
   }, []);
