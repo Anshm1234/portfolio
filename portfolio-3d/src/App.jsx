@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useEffect, useRef } from 'react';
 import Hero from './sections/Hero.jsx';
 import Navbar from './components/Navbar.jsx';
 import HamsterLoader from './components/HamsterLoader.jsx';
+import WelcomeScreen from './components/WelcomeScreen.jsx';
 
 // Below-the-fold sections load as their own async chunks — the entry bundle
 // carries only what first paint needs (Hero + navbar + the tiny loader).
@@ -24,6 +25,10 @@ export default function App() {
 
   const [launched, setLaunched] = useState(relaunch);   // has the game ever been started
   const [gameOpen, setGameOpen] = useState(relaunch);   // is the game overlay showing now
+
+  // ---- welcome curtain: covers the site on first load, lifts to reveal it.
+  //      Skipped when we're dropping straight back into the game (dev reload).
+  const [showWelcome, setShowWelcome] = useState(!relaunch);
 
   // ---- hamster loader: covers the launch (until the game's assets are in)
   //      and the exit (a short beat while we swap back to the site)
@@ -128,6 +133,9 @@ export default function App() {
           label={loader === 'enter' ? 'LOADING WORLD' : 'LEAVING WORLD'}
         />
       )}
+
+      {/* ---- Welcome curtain — over everything on first load, lifts to reveal ---- */}
+      {showWelcome && <WelcomeScreen onDone={() => setShowWelcome(false)} />}
     </>
   );
 }

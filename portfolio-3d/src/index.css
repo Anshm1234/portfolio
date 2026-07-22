@@ -30,6 +30,72 @@ body {
 }
 /* while the game overlay is open, lock page scroll behind it */
 body.game-open { overflow: hidden; }
+/* while the welcome curtain is up, the site can't scroll behind it — lock
+   BOTH the root and body (browsers differ on which one scrolls the document) */
+html.welcome-open, body.welcome-open { overflow: hidden; }
+
+/* ============================================================
+   WELCOME — full-screen curtain over the loading site. Warm theme,
+   Milkyway display type, hand-drawn vines. Lifts up to reveal the site.
+   ============================================================ */
+.welcome {
+  position: fixed; inset: 0; z-index: 300;
+  display: grid; place-items: center;
+  overflow: hidden; will-change: transform;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 42%, var(--surface) 0%, var(--bg) 70%),
+    var(--bg);
+}
+.welcome-inner { position: relative; z-index: 2; text-align: center; padding: 0 24px; }
+.welcome-sub {
+  font-size: clamp(12px, 1.6vw, 16px); letter-spacing: 6px; text-transform: uppercase;
+  color: var(--ink-soft); font-weight: 700; margin-bottom: clamp(50px, 1vh, 14px);
+}
+.welcome-title {
+  margin: 0; color: var(--wood-deep);
+  font-family: 'Milkyway', 'Inter', system-ui, sans-serif;
+  font-weight: 400;                          /* Milkyway is a display face */
+  font-size: clamp(80px, 18vw, 250px); line-height: 0.86; letter-spacing: 0.02em;
+  /* extra visual weight without a bolder cut: layered wood shadow + soft glow */
+  text-shadow: 0 3px 0 rgba(122, 79, 40, .18), 0 14px 40px rgba(74, 52, 32, .28);
+}
+
+/* hand-drawn corner ornaments — one drawing, mirrored into all four corners.
+   They hug the corners; nothing runs up the sides. */
+.vine {
+  position: absolute; z-index: 1; pointer-events: none;
+  width: clamp(120px, 17vw, 230px); height: auto;
+}
+.vine-bl { left: -6px; bottom: -6px; }
+.vine-br { right: -6px; bottom: -6px; transform: scaleX(-1); }
+.vine-tl { left: -6px; top: -6px; transform: scaleY(-1); }
+.vine-tr { right: -6px; top: -6px; transform: scale(-1, -1); }
+/* fine engraved stroke + muted olive leaves = refined, not playful */
+.vine-stem { fill: none; stroke: var(--wood-deep); stroke-width: 2; stroke-linecap: round; opacity: .85; }
+.vine-leaf { fill: #55603a; opacity: .82; }          /* deep muted olive, not bright green */
+.vine-berry { fill: var(--wood-deep); opacity: .8; }
+
+/* scroll cue — appears after the intro; bouncing chevron */
+.welcome-scroll {
+  position: absolute; left: 50%; bottom: clamp(20px, 6vh, 54px); transform: translateX(-50%);
+  z-index: 3; display: inline-flex; flex-direction: column; align-items: center; gap: 10px;
+  background: none; border: none; cursor: pointer; font: inherit;
+  color: var(--ink-soft); font-weight: 700; font-size: 12px;
+  letter-spacing: 3px; text-transform: uppercase;
+  transition: color .2s;
+}
+.welcome-scroll:hover { color: var(--wood-deep); }
+.welcome-scroll .chev {
+  width: 14px; height: 14px; border-right: 2.5px solid currentColor; border-bottom: 2.5px solid currentColor;
+  transform: rotate(45deg); animation: welcomeChev 1.5s ease-in-out infinite;
+}
+@keyframes welcomeChev {
+  0%, 100% { transform: rotate(45deg) translate(0, 0); opacity: .5; }
+  50%      { transform: rotate(45deg) translate(3px, 3px); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .welcome-scroll .chev { animation: none; }
+}
 
 /* ============================================================
    NAVBAR — floating glass pill, rounded, blurs whatever scrolls under
