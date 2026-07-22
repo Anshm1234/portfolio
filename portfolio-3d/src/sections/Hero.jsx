@@ -38,6 +38,7 @@ export default function Hero({ onPlay }) {
 
   // ---- draw one frame, cover-fit, dpr-aware ----
   const lastImg = useRef(null);
+  const ctxRef = useRef(null);
   const draw = (idx) => {
     const canvas = canvasRef.current;
     const img = pick(idx);
@@ -51,10 +52,18 @@ export default function Hero({ onPlay }) {
     if (!resized && img === lastImg.current) return;
     lastIdx.current = idx;
     lastImg.current = img;
-    if (resized) { canvas.width = W; canvas.height = H; }
-    const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';   // best resampling the browser offers
+    // Resizing the canvas RESETS its 2d-context state, so (re)build + configure
+    // the context only then — not every frame. `alpha:false` lets the compositor
+    // skip transparency work, and 'medium' resampling is far cheaper than 'high'
+    // yet invisible on a moving full-screen backdrop. This drawImage is the main
+    // per-scroll cost, so these two knobs are what smooth the scrub.
+    let ctx = ctxRef.current;
+    if (resized || !ctx) {
+      canvas.width = W; canvas.height = H;
+      ctx = ctxRef.current = canvas.getContext('2d', { alpha: false });
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'medium';
+    }
     const s = Math.max(W / img.width, H / img.height);
     ctx.drawImage(img, (W - img.width * s) / 2, (H - img.height * s) / 2, img.width * s, img.height * s);
   };
@@ -84,8 +93,13 @@ export default function Hero({ onPlay }) {
           draw(0);
           setLoaded(true);
         }
-        if ((ok + bad) === FRAME_COUNT)
+        if ((ok + bad) === FRAME_COUNT) {
           console.info(`[hero] frames loaded: ${ok}/${FRAME_COUNT}` + (bad ? `, FAILED: ${bad}` : ''));
+          // the network + main thread are free now — About waits on this before
+          // pulling its heavy lanyard bundle, so the two never contend
+          window.__heroFramesReady = true;
+          dispatchEvent(new Event('hero:framesReady'));
+        }
         done?.();
       };
       img.onerror = () => { if (++bad === 1) console.error('[hero] frame failed:', framePath(i)); done?.(); };

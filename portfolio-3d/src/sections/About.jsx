@@ -158,20 +158,30 @@ export default function About() {
 
   useEffect(() => { buildCardFace().then(setFace); }, []);
 
-  // Warm the heavy Lanyard bundle DURING IDLE, well before the section is in
-  // view. Importing the module pulls its chunk (three + physics + drei) AND
-  // fires its top-level useGLTF.preload(card.glb) — so ~5MB is already cached
-  // by the time you scroll down, instead of downloading on arrival. Runs on
-  // requestIdleCallback so it never competes with first paint / hero frames.
+  // Warm the heavy Lanyard bundle (three + physics + drei, plus its
+  // useGLTF.preload(card.glb)) so it's cached before you scroll to About — but
+  // ONLY AFTER the hero frames finish. Parsing the 2.4MB physics blob while the
+  // frames are still streaming stalls the hero scroll, so we hold until the
+  // Hero fires `hero:framesReady`. Failsafe timeout so a broken frame (the
+  // event never firing) can't strand the prefetch forever.
   useEffect(() => {
-    let cancelled = false;
-    const warm = () => { if (!cancelled) import('../components/lanyard/Lanyard.jsx'); };
-    const id = 'requestIdleCallback' in window
-      ? requestIdleCallback(warm, { timeout: 3500 })
-      : setTimeout(warm, 2500);
+    let cancelled = false, failsafe;
+    const warm = () => {
+      if (cancelled) return;
+      const run = () => { if (!cancelled) import('../components/lanyard/Lanyard.jsx'); };
+      if ('requestIdleCallback' in window) requestIdleCallback(run, { timeout: 1500 });
+      else run();
+    };
+    const start = () => { clearTimeout(failsafe); removeEventListener('hero:framesReady', start); warm(); };
+    if (window.__heroFramesReady) start();          // frames already done
+    else {
+      addEventListener('hero:framesReady', start, { once: true });
+      failsafe = setTimeout(start, 12000);          // don't wait past 12s
+    }
     return () => {
       cancelled = true;
-      if ('cancelIdleCallback' in window) cancelIdleCallback(id); else clearTimeout(id);
+      removeEventListener('hero:framesReady', start);
+      clearTimeout(failsafe);
     };
   }, []);
 
