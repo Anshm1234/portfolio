@@ -1,0 +1,13 @@
+{
+  "title": "EEG-Based Schizophrenia Detection Using Deep Learning",
+  "description": "Developed an interpretable deep learning pipeline for schizophrenia detection from multichannel EEG signals, incorporating signal preprocessing, feature learning, and explainability to enable accurate clinical classification.",
+  "stack": "PyTorch · NumPy · SciPy · Scikit-learn · Matplotlib",
+  "shots": [
+    "EEG-Signals.jpg",
+    "Architecture.jpg"
+  ],
+  "demo": "",
+  "repo": "https://github.com/Anshm1234/EEG-based-Schizophrenia-Detection-using-Deep-Learning",
+  "accent": "#c084fc",
+  "order": 4
+}

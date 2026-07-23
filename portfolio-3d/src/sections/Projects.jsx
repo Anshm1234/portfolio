@@ -22,12 +22,25 @@ gsap.registerPlugin(ScrollTrigger, SplitText, ScrambleTextPlugin);
 
 const techsOf = (stack) => (stack || '').split('·').map((s) => s.trim()).filter(Boolean);
 
-// one screenshot: a real image if the project provides a path, otherwise a
-// warm themed placeholder tile with the label (matches the site, ignores the
-// data's cool default hues)
+// a project whose demo is the sentinel "game" launches the 3D world instead of
+// opening a URL; its button label comes from demoLabel (fallback "Live Demo").
+const isGameDemo = (p) => p.demo === 'game';
+
+// a shot is either a resolved image ({ src, name } or a bare path string) or a
+// { placeholder, hue } tile. srcOf pulls the image url; nameOf pulls a caption.
+const srcOf = (shot) => (typeof shot === 'string' ? shot : shot?.src) || null;
+const nameOf = (shot) => {
+  const raw = shot?.name || (typeof shot === 'string' ? shot.split('/').pop() : shot?.placeholder) || '';
+  return raw.replace(/\.[^.]+$/, '');   // drop the file extension for the caption
+};
+
+// one screenshot: a real image if the project provides one, otherwise a warm
+// themed placeholder tile with the label (matches the site, ignores the data's
+// cool default hues)
 function Shot({ shot, className }) {
-  if (typeof shot === 'string') {
-    return <img className={className} src={shot} alt="" loading="lazy" />;
+  const src = srcOf(shot);
+  if (src) {
+    return <img className={className} src={src} alt="" loading="lazy" />;
   }
   return (
     <div className={`${className} shot-ph`}>
@@ -37,13 +50,27 @@ function Shot({ shot, className }) {
 }
 
 // ---- the in-place expanding detail view (FLIP grow from the card) ----
-function ProjectDetail({ project, originRect, onClose }) {
+function ProjectDetail({ project, originRect, onClose, onPlay }) {
   const overlayRef = useRef(null);
   const panelRef = useRef(null);
   const contentRef = useRef(null);
   const [shot, setShot] = useState(0);
+  const [shotAR, setShotAR] = useState(null);   // natural aspect of the current shot
   const shots = project.shots || [];
   const techs = techsOf(project.stack);
+
+  // measure the current screenshot's real proportions so the window frame
+  // matches it exactly (no letterboxing, no crop)
+  useEffect(() => {
+    const src = srcOf(shots[shot]);
+    if (!src) { setShotAR(null); return; }
+    let live = true;
+    const img = new Image();
+    img.onload = () => { if (live) setShotAR(img.naturalWidth / img.naturalHeight); };
+    img.src = src;
+    return () => { live = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shot, project]);
   // a fake address-bar label so the shot reads as a real desktop browser window
   const siteLabel = (() => {
     try {
@@ -95,36 +122,44 @@ function ProjectDetail({ project, originRect, onClose }) {
       <div className="pd-panel" ref={panelRef} style={{ '--accent': 'var(--wood)' }}>
         <button type="button" className="pd-close" onClick={close} aria-label="Close">✕</button>
         <div className="pd-content" ref={contentRef}>
-          {/* LEFT — photos, framed as a desktop browser window (16:9) */}
+          {/* LEFT — title above the browser window, then the shot + thumbs */}
           <div className="pd-left">
-            <div className="pd-browser">
+            <h3 className="pd-title">{project.title}</h3>
+            <div className="pd-browser" style={{ '--shot-ar': shotAR ?? 1900 / 900 }}>
               <div className="pd-browser-bar" aria-hidden="true">
                 <i className="pd-dot" /><i className="pd-dot" /><i className="pd-dot" />
-                <span className="pd-url">{siteLabel}</span>
+                <span className="pd-url">
+                  <svg className="pd-lock" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M7 10V7a5 5 0 0 1 10 0v3" fill="none" stroke="currentColor" strokeWidth="2" />
+                    <rect x="4" y="10" width="16" height="11" rx="2.5" fill="currentColor" />
+                  </svg>
+                  {siteLabel}
+                </span>
               </div>
               <Shot shot={shots[shot]} className="pd-hero" />
             </div>
             {shots.length > 1 && (
               <div className="pd-thumbs">
                 {shots.map((s, i) => (
-                  <button
-                    type="button"
-                    key={i}
-                    className={`pd-thumb ${i === shot ? 'on' : ''}`}
-                    onClick={() => setShot(i)}
-                    aria-label={`View shot ${i + 1}`}
-                  >
-                    <Shot shot={s} className="pd-thumb-img" />
-                  </button>
+                  <div className="pd-thumb-wrap" key={i}>
+                    <button
+                      type="button"
+                      className={`pd-thumb ${i === shot ? 'on' : ''}`}
+                      onClick={() => setShot(i)}
+                      aria-label={`View ${nameOf(s) || `shot ${i + 1}`}`}
+                    >
+                      <Shot shot={s} className="pd-thumb-img" />
+                    </button>
+                    <span className="pd-thumb-name" title={nameOf(s)}>{nameOf(s)}</span>
+                  </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* RIGHT — name, moving stack, description, links */}
+          {/* RIGHT — overview: stack, description, links */}
           <div className="pd-right">
-            <h3 className="pd-title">{project.title}</h3>
-
+            <span className="pd-eyebrow">Overview</span>
             <div className="pd-stack" aria-label="Tech stack">
               <div className="pd-stack-track">
                 {[0, 1].map((dup) => (
@@ -141,7 +176,15 @@ function ProjectDetail({ project, originRect, onClose }) {
               {project.repo && (
                 <a className="pd-link" href={project.repo} target="_blank" rel="noopener">GitHub ↗</a>
               )}
-              {project.demo && (
+              {isGameDemo(project) ? (
+                <button
+                  type="button"
+                  className="pd-link pd-link-solid"
+                  onClick={() => { onClose?.(); onPlay?.(); }}
+                >
+                  {project.demoLabel || 'Live Demo'} ▶
+                </button>
+              ) : project.demo && (
                 <a className="pd-link pd-link-solid" href={project.demo} target="_blank" rel="noopener">Live Demo ↗</a>
               )}
             </div>
@@ -153,7 +196,7 @@ function ProjectDetail({ project, originRect, onClose }) {
 }
 
 // ---- a single project card in the track ----
-function ProjectCard({ project, index, onOpen }) {
+function ProjectCard({ project, index, onOpen, onPlay }) {
   const ref = useRef(null);
   const techs = techsOf(project.stack).slice(0, 4);
   const cover = (project.shots && project.shots[0]) || null;
@@ -195,7 +238,11 @@ function ProjectCard({ project, index, onOpen }) {
           {project.repo && (
             <a className="pc-link" href={project.repo} target="_blank" rel="noopener">GitHub ↗</a>
           )}
-          {project.demo && (
+          {isGameDemo(project) ? (
+            <button type="button" className="pc-link pc-link-btn" onClick={onPlay}>
+              {project.demoLabel || 'Live'} ▶
+            </button>
+          ) : project.demo && (
             <a className="pc-link" href={project.demo} target="_blank" rel="noopener">Live ↗</a>
           )}
         </div>
@@ -204,7 +251,8 @@ function ProjectCard({ project, index, onOpen }) {
   );
 }
 
-export default function Projects() {
+export default function Projects({ onPlay }) 
+{
   const sectionRef = useRef(null);
   const trackRef = useRef(null);
   const progressRef = useRef(null);
@@ -265,6 +313,9 @@ export default function Projects() {
       });
       return () => { tween.scrollTrigger?.kill(); tween.kill(); gsap.set(track, { clearProps: 'x' }); };
     });
+    // the pin-spacer this section inserts shifts everything below it — make
+    // sure every other trigger recomputes against the new page height
+    ScrollTrigger.refresh();
     return () => mm.revert();
   }, []);
 
@@ -282,7 +333,7 @@ export default function Projects() {
           </div>
 
           {PROJECTS.map((p, i) => (
-            <ProjectCard key={p.title} project={p} index={i} onOpen={openDetail} />
+            <ProjectCard key={p.title} project={p} index={i} onOpen={openDetail} onPlay={onPlay} />
           ))}
           <div className="proj-end" aria-hidden="true">
             <span>More soon...</span>
@@ -300,6 +351,7 @@ export default function Projects() {
           project={detail.project}
           originRect={detail.rect}
           onClose={() => setDetail(null)}
+          onPlay={onPlay}
         />
       )}
     </section>

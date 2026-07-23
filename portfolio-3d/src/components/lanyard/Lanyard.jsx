@@ -65,7 +65,7 @@ export default function Lanyard({
   // reads BIG in a compact column (the column is only as tall as the intro
   // text beside it, so there's no dead space); the strap's anchor (y=4) still
   // sits just above the frame's top edge, so the rope hangs in from offscreen
-  position = [0, 0, 17],
+  position = [0, 0, 15],
   gravity = [0, -40, 0],
   fov = 20,
   frontImage = null,

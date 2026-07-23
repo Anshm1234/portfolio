@@ -1,0 +1,14 @@
+{
+  "title": "Career Ops",
+  "description": "A full-stack AI job-discovery platform. Upload a resume once and a Gemini call parses it into a structured profile; a deterministic TOPSIS pipeline then scores scraped job listings against it on skill overlap, seniority, salary, and location, returning ranked matches with a visible score per job. Deployed and running in production on Render and Vercel.",
+  "stack": "FastAPI · Next.js · Supabase · Gemini",
+  "shots": [
+    "Intro.png",
+    "Dashboard.png",
+    "job_matches.png"
+  ],
+  "demo": "https://career-ops-frontend.vercel.app/",
+  "repo": "https://github.com/Anshm1234/Career_ops",
+  "accent": "#35e0a8",
+  "order": 1
+}

@@ -10,6 +10,7 @@ import gsap from 'gsap';
 const LINKS = [
   ['Home', '#home'],
   ['About', '#about'],
+  ['Journey', '#journey'],
   ['Projects', '#projects'],
   ['Contact', '#contact'],
 ];
@@ -165,11 +166,21 @@ export default function Navbar() {
         gsap.to(barRef.current, { x: barX(idx), duration: 0.35, ease: 'power2.out' });
       }
     }, { rootMargin: '-45% 0px -45% 0px' });
-    LINKS.forEach(([, h]) => {
-      const el = document.querySelector(h);
-      if (el) io.observe(el);
-    });
-    return () => io.disconnect();
+    const observeAll = () => {
+      io.disconnect();
+      LINKS.forEach(([, h]) => {
+        const el = document.querySelector(h);
+        if (el) io.observe(el);
+      });
+    };
+    observeAll();
+    // each lazy chunk REPLACES its fallback <section> node when it arrives,
+    // which would leave the observer watching dead nodes — re-observe every
+    // time the main content's children change
+    const mo = new MutationObserver(observeAll);
+    const main = document.querySelector('main.site');
+    if (main) mo.observe(main, { childList: true });
+    return () => { mo.disconnect(); io.disconnect(); };
   }, []);
 
   return (

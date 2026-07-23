@@ -9,6 +9,7 @@ import WelcomeScreen from './components/WelcomeScreen.jsx';
 // Each fallback keeps the section's id in the DOM so navbar anchor links and
 // the scroll-spy still have a target while the chunk is in flight.
 const About = lazy(() => import('./sections/About.jsx'));
+const Journey = lazy(() => import('./sections/Journey.jsx'));
 const Projects = lazy(() => import('./sections/Projects.jsx'));
 const Contact = lazy(() => import('./sections/Contact.jsx'));
 const GameLauncher = lazy(() => import('./components/GameLauncher.jsx'));
@@ -89,18 +90,47 @@ export default function App() {
       {/* ---- Glass navbar — hidden while the game overlay is up ---- */}
       {!gameOpen && <Navbar />}
 
+      {/* ---- Résumé button — fixed top-right, hidden during the game ---- */}
+      {!gameOpen && (
+        <a
+          className="resume-btn"
+          href="/Ansh_Resume_5july.pdf"
+          target="_blank"
+          rel="noopener"
+          aria-label="View résumé (opens in a new tab)"
+        >
+          <span>Resume</span>
+        </a>
+      )}
+
       {/* ---- Traditional portfolio (always in the DOM; game overlays on top) ---- */}
       <main className="site">
         <Hero onPlay={launchGame} />
         <Suspense fallback={<section className="section" id="about" />}>
           <About />
         </Suspense>
+
+        {/* hairline separating About from Journey */}
+        <div className="section-divider" aria-hidden="true" />
+
+        <Suspense fallback={<section className="section" id="journey" />}>
+          <Journey />
+        </Suspense>
         <Suspense fallback={<section className="section" id="projects" />}>
-          <Projects />
+          <Projects onPlay={launchGame} />
         </Suspense>
         <Suspense fallback={<section className="section" id="contact" />}>
           <Contact />
         </Suspense>
+
+        {/* hairline separating Contact from the footer — same diamond rule */}
+        <div className="section-divider" aria-hidden="true" />
+
+        {/* ---- Footer: a warm sign-off left, rights on the right ---- */}
+        <footer className="site-footer">
+          <span className="sf-thanks">~Thank you for visiting</span>
+          <span className="sf-rights">© {new Date().getFullYear()} Ansh Madaan · All rights reserved</span>
+        </footer>
       </main>
 
       {/* ---- Launch button, bottom-right, when the game is closed ---- */}
