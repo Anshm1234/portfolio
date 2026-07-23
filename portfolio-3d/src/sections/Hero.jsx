@@ -13,7 +13,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const FRAME_COUNT = 240;
+const FRAME_COUNT = 180;
 const framePath = (i) => `/frames/frame_${String(i).padStart(3, '0')}.webp`;
 
 export default function Hero({ onPlay }) {
