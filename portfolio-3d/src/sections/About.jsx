@@ -8,7 +8,7 @@
 //           hand-signed sign-off
 //   footer  infinite tech marquee, floating free of any strip
 // Everything rises in with a staggered scroll reveal.
-// The Lanyard stack (R3F + rapier) is lazy-loaded near the viewport.
+// The Lanyard stack (R3F + verlet rope physics) is lazy-loaded near the viewport.
 // ============================================================
 import { Component, lazy, Suspense, useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';

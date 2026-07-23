@@ -3,8 +3,8 @@
   "description": "This very world — an explorable 3D portfolio in Three.js with a walkable character, physics, and interactive stations.",
   "stack": "React · Three.js · React Three Fiber · Blender · GSAP · Vite",
   "shots": [
-    "Home Page.png",
-    "3D World.png"
+    "Home Page.webp",
+    "3D World.webp"
   ],
   "demo": "game",
   "demoLabel": "Try 3D-World",

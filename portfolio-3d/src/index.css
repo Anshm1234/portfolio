@@ -162,7 +162,7 @@ html.welcome-open, body.welcome-open { overflow: hidden; }
   box-shadow: 0 10px 36px rgba(46, 42, 38, .18), inset 0 1px 0 rgba(255, 255, 255, .7);
 }
 @media (max-width: 520px) {
-  .resume-btn { padding: 15px 12px; font-size: 12.5px; }
+  .resume-btn { padding: 15px 12px; font-size: 12.5px; font-style:oblique;}
   .resume-btn span { display: none; }   /* icon only on small screens */
   .resume-btn svg { width: 18px; height: 18px; }
 }

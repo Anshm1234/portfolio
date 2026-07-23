@@ -1,9 +1,13 @@
 /* eslint-disable react/no-unknown-property */
 // ============================================================
-// LANYARD — the physics ID-badge swinging on a strap.
-// Adapted from React Bits' Lanyard (reactbits.dev, by David Haz, MIT):
-// a rope of rapier RigidBodies joint-linked to the card, drawn as a
-// MeshLine band; drag the card and it swings with real physics.
+// LANYARD — the ID-badge swinging on a strap.
+// Adapted from React Bits' Lanyard (reactbits.dev, by David Haz, MIT).
+//
+// Physics: a lightweight VERLET rope (a handful of point masses linked by
+// distance constraints) solved in useFrame — NO WebAssembly. This replaces
+// the original @react-three/rapier implementation, whose Rapier WASM was
+// ~944 KB gzipped (base64-inlined into the bundle). Verlet gives the same
+// hang-and-swing feel in ~60 lines and a fraction of the bytes.
 //
 // Local changes from the original:
 //   • JSX (types stripped), assets served from /public/lanyard/
@@ -12,12 +16,8 @@
 //   • `frontImage` composites onto the card's front UV atlas (photo card)
 // ============================================================
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Canvas, extend, useFrame } from '@react-three/fiber';
+import { Canvas, extend, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, useTexture, Environment, Lightformer } from '@react-three/drei';
-import {
-  BallCollider, CuboidCollider, Physics, RigidBody,
-  useRopeJoint, useSphericalJoint,
-} from '@react-three/rapier';
 import { MeshLineGeometry, MeshLineMaterial } from 'meshline';
 import * as THREE from 'three';
 import './Lanyard.css';
@@ -89,15 +89,14 @@ export default function Lanyard({
         onCreated={({ gl }) => gl.setClearColor(new THREE.Color(0x000000), 0)}
       >
         <ambientLight intensity={Math.PI} />
-        <Physics gravity={gravity} timeStep={isMobile ? 1 / 30 : 1 / 60}>
-          <Band
-            isMobile={isMobile}
-            frontImage={frontImage}
-            backImage={backImage}
-            imageFit={imageFit}
-            lanyardWidth={lanyardWidth}
-          />
-        </Physics>
+        <Band
+          isMobile={isMobile}
+          gravity={gravity}
+          frontImage={frontImage}
+          backImage={backImage}
+          imageFit={imageFit}
+          lanyardWidth={lanyardWidth}
+        />
         {/* soft studio light strips so the card's clearcoat catches highlights */}
         <Environment blur={0.75}>
           <Lightformer intensity={2} color="white" position={[0, -1, 5]} rotation={[0, 0, Math.PI / 3]} scale={[100, 0.1, 1]} />
@@ -110,22 +109,16 @@ export default function Lanyard({
   );
 }
 
-function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, frontImage, backImage, imageFit, lanyardWidth }) {
+// world-space anchor the strap hangs from (just above the visible top edge)
+const ANCHOR = new THREE.Vector3(0, 4, 0);
+const SEG = 1;          // rest length between rope nodes
+const NODES = 4;        // node 0 = fixed anchor … node 3 = card attach point
+const ITER = 16;        // constraint relaxation passes per frame
+
+function Band({ isMobile = false, gravity, frontImage, backImage, imageFit, lanyardWidth }) {
   const band = useRef(null);
-  const fixed = useRef(null);
-  const j1 = useRef(null);
-  const j2 = useRef(null);
-  const j3 = useRef(null);
-  const card = useRef(null);
-
-  const vec = new THREE.Vector3();
-  const ang = new THREE.Vector3();
-  const rot = new THREE.Vector3();
-  const dir = new THREE.Vector3();
-
-  const segmentProps = { type: 'dynamic', canSleep: true, colliders: false, angularDamping: 4, linearDamping: 4 };
-
-  const getLerped = (body) => (body.lerped ??= new THREE.Vector3().copy(body.translation()));
+  const cardGroup = useRef(null);          // the swinging card (pivots at its top)
+  const { camera, pointer } = useThree();
 
   const { nodes, materials } = useGLTF(CARD_GLB);
   const strap = useTexture(getStrapURL());
@@ -167,93 +160,138 @@ function Band({ maxSpeed = 50, minSpeed = 0, isMobile = false, frontImage, backI
     return composite;
   }, [frontImage, backImage, imageFit, frontTex, backTex, materials.base.map]);
 
+  // ---- the verlet rope: node positions + their previous positions ----
+  const rope = useMemo(() => {
+    const pos = [], prev = [];
+    for (let i = 0; i < NODES; i++) {
+      const p = new THREE.Vector3(0, ANCHOR.y - i * SEG, 0);
+      pos.push(p); prev.push(p.clone());
+    }
+    return { pos, prev };
+  }, []);
+
   const [curve] = useState(() => new THREE.CatmullRomCurve3(
     [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]));
-  const [dragged, drag] = useState(false);
-  const [hovered, hover] = useState(false);
+  curve.curveType = 'chordal';
 
-  useRopeJoint(fixed, j1, [[0, 0, 0], [0, 0, 0], 1]);
-  useRopeJoint(j1, j2, [[0, 0, 0], [0, 0, 0], 1]);
-  useRopeJoint(j2, j3, [[0, 0, 0], [0, 0, 0], 1]);
-  useSphericalJoint(j3, card, [[0, 0, 0], [0, 1.45, 0]]);
+  const drag = useRef(null);               // Vector3 grab-offset while dragging
+  const [dragging, setDragging] = useState(false);
+  const [hovered, hover] = useState(false);
+  const spin = useRef(0);                  // card y-rotation (settles facing front)
+  const spinVel = useRef(0);
+
+  // gravity as a world vector (scaled — verlet reaches the same hang, this
+  // just sets how briskly it swings)
+  const G = useMemo(
+    () => new THREE.Vector3(gravity[0], gravity[1], gravity[2]).multiplyScalar(0.9),
+    [gravity],
+  );
 
   useEffect(() => {
     if (hovered) {
-      document.body.style.cursor = dragged ? 'grabbing' : 'grab';
+      document.body.style.cursor = dragging ? 'grabbing' : 'grab';
       return () => { document.body.style.cursor = 'auto'; };
     }
-  }, [hovered, dragged]);
+  }, [hovered, dragging]);
+
+  const tmp = new THREE.Vector3();
+  const dir = new THREE.Vector3();
 
   useFrame((state, delta) => {
-    if (dragged && typeof dragged !== 'boolean') {
-      vec.set(state.pointer.x, state.pointer.y, 0.5).unproject(state.camera);
-      dir.copy(vec).sub(state.camera.position).normalize();
-      vec.add(dir.multiplyScalar(state.camera.position.length()));
-      [card, j1, j2, j3, fixed].forEach((ref) => ref.current?.wakeUp());
-      card.current?.setNextKinematicTranslation({
-        x: vec.x - dragged.x, y: vec.y - dragged.y, z: vec.z - dragged.z,
-      });
+    const dt = Math.min(delta, 1 / 60);
+    const { pos, prev } = rope;
+
+    // integrate free nodes (skip the fixed anchor at index 0)
+    for (let i = 1; i < NODES; i++) {
+      const p = pos[i], pr = prev[i];
+      tmp.copy(p);
+      p.addScaledVector(tmp.clone().sub(pr), 0.94);   // inertia w/ damping
+      p.addScaledVector(G, dt * dt);                  // gravity
+      pr.copy(tmp);
     }
-    if (fixed.current) {
-      [j1, j2].forEach((ref) => {
-        const lerped = getLerped(ref.current);
-        const clamped = Math.max(0.1, Math.min(1, lerped.distanceTo(ref.current.translation())));
-        lerped.lerp(ref.current.translation(), delta * (minSpeed + clamped * (maxSpeed - minSpeed)));
-      });
-      curve.points[0].copy(j3.current.translation());
-      curve.points[1].copy(getLerped(j2.current));
-      curve.points[2].copy(getLerped(j1.current));
-      curve.points[3].copy(fixed.current.translation());
-      band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
-      ang.copy(card.current.angvel());
-      rot.copy(card.current.rotation());
-      card.current.setAngvel({ x: ang.x, y: ang.y - rot.y * 0.25, z: ang.z }, true);
+
+    // where the card is being dragged to (a point on the camera-facing plane)
+    let target = null;
+    if (drag.current) {
+      tmp.set(pointer.x, pointer.y, 0.5).unproject(camera);
+      dir.copy(tmp).sub(camera.position).normalize();
+      tmp.copy(camera.position).addScaledVector(dir, camera.position.length());
+      target = tmp.clone().sub(drag.current);
     }
+
+    // satisfy the distance constraints (and the pinned endpoints)
+    for (let k = 0; k < ITER; k++) {
+      pos[0].copy(ANCHOR);
+      if (target) pos[NODES - 1].copy(target);
+      for (let i = 0; i < NODES - 1; i++) {
+        const a = pos[i], b = pos[i + 1];
+        dir.copy(b).sub(a);
+        const d = dir.length() || 1e-5;
+        const f = (d - SEG) / d;                        // how far off rest length
+        const pinA = i === 0;
+        const pinB = i + 1 === NODES - 1 && target;
+        if (pinA && pinB) continue;
+        if (pinA) b.addScaledVector(dir, -f);
+        else if (pinB) a.addScaledVector(dir, f);
+        else { a.addScaledVector(dir, f * 0.5); b.addScaledVector(dir, -f * 0.5); }
+      }
+    }
+
+    // draw the strap through the smoothed rope (anchor → card)
+    curve.points[0].copy(pos[NODES - 1]);
+    curve.points[1].copy(pos[2]);
+    curve.points[2].copy(pos[1]);
+    curve.points[3].copy(pos[0]);
+    band.current.geometry.setPoints(curve.getPoints(isMobile ? 16 : 32));
+
+    // pose the card: pivot at the last node, tilt with the strap's end
+    // direction, and a damped y-spin that keeps settling to face the viewer
+    const end = pos[NODES - 1], above = pos[NODES - 2];
+    cardGroup.current.position.copy(end);
+    dir.copy(end).sub(above);                           // points down the strap
+    const zRot = Math.atan2(dir.x, -dir.y);
+    const xRot = Math.atan2(dir.z, Math.hypot(dir.x, -dir.y));
+    const hVel = end.x - prev[NODES - 1].x;             // horizontal swing speed
+    spinVel.current += -spin.current * 0.10 + hVel * 0.5;
+    spinVel.current *= 0.86;
+    spin.current += spinVel.current;
+    cardGroup.current.rotation.set(xRot * 0.5, spin.current, zRot);
   });
 
-  curve.curveType = 'chordal';
   strap.wrapS = strap.wrapT = THREE.RepeatWrapping;
 
   return (
     <>
-      <group position={[0, 4, 0]}>
-        <RigidBody ref={fixed} {...segmentProps} type="fixed" />
-        <RigidBody position={[0.5, 0, 0]} ref={j1} {...segmentProps} type="dynamic">
-          <BallCollider args={[0.1]} />
-        </RigidBody>
-        <RigidBody position={[1, 0, 0]} ref={j2} {...segmentProps} type="dynamic">
-          <BallCollider args={[0.1]} />
-        </RigidBody>
-        <RigidBody position={[1.5, 0, 0]} ref={j3} {...segmentProps} type="dynamic">
-          <BallCollider args={[0.1]} />
-        </RigidBody>
-        <RigidBody position={[2, 0, 0]} ref={card} {...segmentProps} type={dragged ? 'kinematicPosition' : 'dynamic'}>
-          <CuboidCollider args={[0.8, 1.125, 0.01]} />
-          <group
-            scale={2.25}
-            position={[0, -1.2, -0.05]}
-            onPointerOver={() => hover(true)}
-            onPointerOut={() => hover(false)}
-            onPointerUp={(e) => { e.target.releasePointerCapture(e.pointerId); drag(false); }}
-            onPointerDown={(e) => {
-              e.target.setPointerCapture(e.pointerId);
-              drag(new THREE.Vector3().copy(e.point).sub(vec.copy(card.current.translation())));
-            }}
-          >
-            <mesh geometry={nodes.card.geometry}>
-              <meshPhysicalMaterial
-                map={cardMap}
-                map-anisotropy={16}
-                clearcoat={isMobile ? 0 : 1}
-                clearcoatRoughness={0.15}
-                roughness={0.9}
-                metalness={0.8}
-              />
-            </mesh>
-            <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
-            <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
-          </group>
-        </RigidBody>
+      <group ref={cardGroup}>
+        {/* the pivot (cardGroup) sits at the strap's clip; the card body hangs
+            below it. The extra ~1.45 drop replaces Rapier's spherical-joint
+            offset so the strap attaches at the CLIP, not through the card. */}
+        <group
+          scale={2.25}
+          position={[0, -2.65, -0.05]}
+          onPointerOver={() => hover(true)}
+          onPointerOut={() => hover(false)}
+          onPointerUp={(e) => { e.target.releasePointerCapture(e.pointerId); drag.current = null; setDragging(false); }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            e.target.setPointerCapture(e.pointerId);
+            drag.current = new THREE.Vector3().copy(e.point).sub(cardGroup.current.position);
+            setDragging(true);
+          }}
+        >
+          <mesh geometry={nodes.card.geometry}>
+            <meshPhysicalMaterial
+              map={cardMap}
+              map-anisotropy={16}
+              clearcoat={isMobile ? 0 : 1}
+              clearcoatRoughness={0.15}
+              roughness={0.9}
+              metalness={0.8}
+            />
+          </mesh>
+          <mesh geometry={nodes.clip.geometry} material={materials.metal} material-roughness={0.3} />
+          <mesh geometry={nodes.clamp.geometry} material={materials.metal} />
+        </group>
       </group>
       <mesh ref={band}>
         <meshLineGeometry />
