@@ -38,7 +38,7 @@ class LanyardBoundary extends Component {
 
 // Your photo (public/lanyard/). If the file is missing the card shows an
 // "AM" monogram fallback instead — swap the path any time.
-const PHOTO_SRC = '/lanyard/ansh_image.jpeg';
+const PHOTO_SRC = '/lanyard/ansh.webp';
 
 // ---- draw the badge's front face: photo window on cream, name plate below
 function buildCardFace() {
