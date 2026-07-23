@@ -10,10 +10,10 @@
   --bg-deep:   #a1968899; /* slightly deeper taupe for gradients */
   --surface:   #e9ddcd;   /* raised card surface, lighter taupe */
   --wood:      #b07a45;   /* walnut wood accent (the desk) */
-  --wood-deep: #7a4f28;   /* darker wood for hovers/borders */
+  --wood-deep: #81562d;   /* darker wood for hovers/borders */
   --cream:     #dfd8cd;   /* the shirt — near-white cream */
   --ink:       #2e2a26;   /* matte charcoal — primary text */
-  --ink-soft:  #5b544c;   /* secondary text */
+  --ink-soft:  #4f4942;   /* secondary text */
   --leaf:      #5b7d3a;   /* plant green — sparing accent */
   --line:      #8f8375;   /* hairline borders on taupe */
 }
@@ -373,7 +373,7 @@ html.welcome-open, body.welcome-open { overflow: hidden; }
 
 /* editorial bio: bigger, airier, with phrases that catch the eye */
 .about-bio {
-  color: var(--ink-soft); font-size: 18px; line-height: 1.75; max-width: 54ch; font-weight: 400;
+  color: var(--ink-soft); font-size: 20px; line-height: 1.75; max-width: 54ch; font-weight: 400;
 }
 .about-bio em { font-style: normal; font-weight: 700; color: var(--wood-deep); }
 /* magazine drop cap — the bio's opening letter set in the display face */
