@@ -112,16 +112,35 @@ export default function Hero({ onPlay }) {
     const coarse = [], fine = [];
     for (let i = 0; i < FRAME_COUNT; i++) (i % 6 === 0 ? coarse : fine).push(i);
 
-    let pending = coarse.length;
-    const onCoarseDone = () => {
-      if (--pending > 0 || !alive) return;
+    // Load a list with LIMITED concurrency. Over HTTP/2 every request
+    // multiplexes on one connection, so firing all ~150 frames at once splits
+    // the bandwidth 150 ways — each trickles in and they all finish at the very
+    // end. A small in-flight cap gives each frame the full pipe, so they land
+    // fast and IN ORDER, and the scrub becomes usable almost immediately.
+    const pool = (list, limit, onAll) => {
+      let idx = 0, active = 0, done = 0;
+      const pump = () => {
+        while (alive && active < limit && idx < list.length) {
+          active++;
+          loadOne(list[idx++], () => {
+            active--; done++;
+            if (done === list.length) onAll?.();
+            else pump();
+          });
+        }
+      };
+      pump();
+    };
+
+    // wave 1 — the coarse frames (every 6th) first, so the scrub works early
+    pool(coarse, 6, () => {
+      if (!alive) return;
       console.info('[hero] coarse frames in — loading the rest in the background');
-      // second wave when the browser is idle (or shortly after, as fallback)
-      const start = () => alive && fine.forEach((i) => loadOne(i));
+      // wave 2 — the rest, once the browser is idle, still concurrency-capped
+      const start = () => alive && pool(fine, 6);
       if ('requestIdleCallback' in window) requestIdleCallback(start, { timeout: 2500 });
       else setTimeout(start, 800);
-    };
-    coarse.forEach((i) => loadOne(i, onCoarseDone));
+    });
 
     return () => { alive = false; };
   }, []);
