@@ -13,25 +13,25 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// ---- the milestones, oldest first. Edit the «…» placeholders. ----
+// ---- the milestones, oldest first. ----
 const MILESTONES = [
   {
     period: '2021',
     title: 'Class X',
-    place: '«DAV Public School»',
-    detail: '«88.4%» · CBSE',
+    place: 'DAV Public School',
+    detail: '88.4%',
   },
   {
     period: '2023',
     title: 'Class XII',
-    place: '«DAV Public School»',
-    detail: '«95.8%» · CBSE',
+    place: 'DAV Public School',
+    detail: '95.8%',
   },
   {
     period: '2023 — 2027',
     title: 'B.E. Computer Science & Engineering',
-    place: '«Thapar Institute of Engineering & Technology, Patiala»',
-    detail: 'CGPA «9.12»',
+    place: 'Thapar Institute of Engineering & Technology, Patiala',
+    detail: 'CGPA 9.12',
   },
   {
     period: 'Jun 2025 — Jul 2025',

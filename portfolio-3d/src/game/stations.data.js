@@ -25,21 +25,19 @@
 
 export const STATIONS = [
   {
+    // opens the PC showcase window (see index.js enterProject) — no panel body
     id: 'projects', name: 'PROJECTS', color: 0x35e0a8, x: -6, z: -6,
     model: '/models/projects-desk.glb', fit: 5.5, effects: true, rotY: Math.PI / 2,
-    body: '• Career Ops — AI job discovery & matching\n   FastAPI · Next.js · Supabase · Gemini\n• Deepfake Detection — two-stream attention model',
-    link: ['Open GitHub ↗', 'https://github.com/Anshm1234'],
   },
   {
+    // opens the About window (see index.js enterAbout) — no panel body
     id: 'about', name: 'ABOUT ME', color: 0xffc93c, x: 9, z: -9,
     model: '/models/about_me.glb', fit: 4, rotY: -3 * Math.PI *4,   // face the corner camera
-    body: 'Final-year CS @ Thapar · CGPA 9.16\nGeneral Secretary, ACM Student Chapter',
   },
   {
+    // opens the Contact window (see index.js enterContact) — no panel body
     id: 'contact', name: 'CONTACT', color: 0xc4392f, x: -2, z: 10,
     model: '/models/contact-letterbox.glb', fit: 5, rotY: (Math.PI/2)-0.3,
-    body: 'Email — you@swap-this.dev\nGitHub — Anshm1234',
-    link: ['GitHub ↗', 'https://github.com/Anshm1234'],
   },
   {
     // Screen-LEFT corner: camera looks from (+x,+z), so that's (-x,+z).
