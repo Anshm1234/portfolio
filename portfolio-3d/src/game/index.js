@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { applyDeskEffects } from './desk-effects.js';
 import { setupShowcase } from './showcase.js';
+import { setupAbout } from './about.js';
+import { setupContact } from './contact.js';
 import { STATIONS } from './stations.data.js';
 import { createPlanets, createSparkles } from './decor.js';
 import { createSky, createSun, createGrass, createClouds, createBirds, createStars, createBushes, createRocks } from './nature.js';
@@ -406,14 +408,25 @@ const gameIsOpen = () => document.body.classList.contains('game-open');
 const keys = {};
 addEventListener('keydown', (e) => {
   if (!gameIsOpen()) return;             // browsing the site — don't intercept
-  if (e.key.startsWith('Arrow')) e.preventDefault();
   const k = e.key.toLowerCase();
+  // the Contact form is open: let the visitor TYPE freely (don't swallow keys
+  // or preventDefault) — only Esc closes it. Must come before the arrow guard.
+  if (contactOpen) {
+    if (k === 'escape') { e.preventDefault(); exitContact(); }
+    return;
+  }
+  if (e.key.startsWith('Arrow')) e.preventDefault();
   // while the PC showcase is open it captures navigation + exit
   if (state === 'PROJECT') {
     if (k === 'escape') return exitProject();
     if (k === 'arrowright' || k === 'arrowdown') return showcaseUI && showcaseUI.nextProject();
     if (k === 'arrowleft'  || k === 'arrowup')   return showcaseUI && showcaseUI.prevProject();
     return;                              // swallow other keys so the player stays put
+  }
+  // the About window: Esc or E closes it, everything else is swallowed
+  if (aboutOpen) {
+    if (k === 'escape' || k === 'e' || k === 'enter') return exitAbout();
+    return;
   }
   if ((k === 'e' || k === 'enter') && !e.repeat) return interact();
   if (k === 'escape') { standUp(); return closePanel(); }
@@ -431,6 +444,8 @@ const pBody = document.getElementById('panel-body');
 const pLink = document.getElementById('panel-link');
 document.getElementById('panel-close').onclick = closePanel;
 let panelOpen = false;
+let aboutOpen = false;                   // the About window overlay is up
+let contactOpen = false;                 // the Contact window overlay is up
 
 function nearestStation() {
   let best = null, bd = INTERACT_RADIUS;
@@ -458,6 +473,10 @@ function interact() {
   if (s.action === 'sit') return sitDown();
   // the workstation opens the interactive PC showcase instead of a panel
   if (s.id === 'projects' && s.group) return enterProject();
+  // the About station opens the hamster's profile window
+  if (s.id === 'about') return enterAbout();
+  // the Contact station opens the get-in-touch window
+  if (s.id === 'contact') return enterContact();
   pTitle.textContent = s.name;
   pTitle.style.color = '#' + s.color.toString(16).padStart(6, '0');
   pBody.textContent = s.body;
@@ -467,6 +486,34 @@ function interact() {
   panelOpen = true;
 }
 function closePanel() { panel.style.display = 'none'; panelOpen = false; }
+
+// --- About window: a DOM overlay, no camera move. Freeze the player with
+// inputLocked while it's up; Esc/E (or the ✕/backdrop) hand control back.
+function enterAbout() {
+  aboutOpen = true; inputLocked = true;
+  panelOpen = false; panel.style.display = 'none';
+  promptEl.style.display = 'none';
+  aboutUI && aboutUI.open();
+}
+function exitAbout() {
+  if (!aboutOpen) return;
+  aboutOpen = false; inputLocked = false;
+  aboutUI && aboutUI.close();
+}
+
+// --- Contact window: same modal pattern as About (a form lives inside, so
+// the keydown handler lets typing through and only Esc closes it).
+function enterContact() {
+  contactOpen = true; inputLocked = true;
+  panelOpen = false; panel.style.display = 'none';
+  promptEl.style.display = 'none';
+  contactUI && contactUI.open();
+}
+function exitContact() {
+  if (!contactOpen) return;
+  contactOpen = false; inputLocked = false;
+  contactUI && contactUI.close();
+}
 
 // ============================================================
 // 8. THE STATE MACHINE — the heart of your idea.
@@ -500,6 +547,7 @@ camera.position.copy(CAM_OFF);
 let zoom = 1, zoomTarget = 1;
 addEventListener('wheel', (e) => {
   if (!gameIsOpen()) return;   // let the website scroll normally
+  if (aboutOpen || contactOpen) return;   // let an open window scroll its own content
   e.preventDefault();
   // Touchpads emit streams of tiny deltas (~2–20px) where one mouse-wheel
   // notch is ~100px, so zooming felt glacial on a trackpad. Boost fine
@@ -518,6 +566,8 @@ const camGoal = new THREE.Vector3();     // where the camera is dollying to
 const lookGoal = new THREE.Vector3();    // where it should look during the dolly
 let dollyActive = false;                 // true while animating in/out
 let showcaseUI = null;                   // the overlay controller (set below)
+let aboutUI = null;                      // the About window controller (set below)
+let contactUI = null;                    // the Contact window controller (set below)
 const _wp = new THREE.Vector3(), _wq = new THREE.Quaternion(), _fwd = new THREE.Vector3();
 
 // Compute a camera position that frames the monitor screen head-on.
@@ -721,6 +771,8 @@ function update(dt, t) {
 
 // PC showcase overlay lives in ./showcase.js; wire its exit to our dolly-out.
 showcaseUI = setupShowcase(exitProject);
+aboutUI = setupAbout(exitAbout);
+contactUI = setupContact(exitContact);
 
 // ============================================================
 // 9. THE LOOP
