@@ -9,10 +9,47 @@
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
   border: 1px solid rgba(255,255,255,.25); white-space: nowrap; }
 
-#prompt { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-  display: none; background: #ffd166; color: #14181f; font-weight: 700;
-  font-size: 14px; padding: 10px 18px; border-radius: 999px;
-  box-shadow: 0 8px 24px rgba(0,0,0,.3); }
+/* "E — <station>" hint that floats up when you walk near a prop.
+   A warm cream pill with a pressable keycap, to match the game world. */
+#prompt {
+  position: fixed; bottom: 96px; left: 50%;
+  display: none; align-items: center; justify-content: center; gap: 10px;
+  padding: 8px 18px; border-radius: 999px;
+  font-family: 'Trebuchet MS', system-ui, sans-serif;
+  font-size: 14px; font-weight: 700; letter-spacing: .3px;
+  color: var(--ink, #2e2a26);
+  /* --game-accent is set from the world's time-of-day palette (index.js);
+     it warms/cools the pill so the button belongs to the current sky.
+     Plain values first as a fallback for browsers without color-mix. */
+  background: linear-gradient(180deg, rgba(233,221,205,.98), rgba(223,208,188,.98));
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--game-accent, #b07a45) 12%, #e9ddcd),
+    color-mix(in srgb, var(--game-accent, #b07a45) 9%,  #dfd0bc));
+  border: 1px solid rgba(122,79,40,.5);
+  border: 1px solid color-mix(in srgb, var(--game-accent, #b07a45) 55%, #7a4f28);
+  box-shadow: 0 12px 30px rgba(40,25,10,.35), inset 0 1px 0 rgba(255,255,255,.6);
+  box-shadow:
+    0 12px 30px rgba(40,25,10,.35),
+    0 0 18px color-mix(in srgb, var(--game-accent, #b07a45) 40%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.6);
+  transform: translateX(-50%);
+  animation: prompt-in .28s cubic-bezier(.2,1.15,.3,1);
+}
+.prompt-key {
+  font-family: ui-monospace, 'Consolas', monospace; font-size: 14px; font-weight: 800;
+  color: var(--wood-deep, #7a4f28);
+}
+#prompt-label {
+  text-transform: uppercase; font-size: 12.5px; letter-spacing: 1.5px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(122,79,40,.32);
+  border-left: 1px solid color-mix(in srgb, var(--game-accent, #b07a45) 50%, transparent);
+}
+@keyframes prompt-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(.92); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0)   scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { #prompt { animation: none; } }
 
 #panel { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   display: none; width: min(92vw, 440px); background: rgba(15,18,32,.94);

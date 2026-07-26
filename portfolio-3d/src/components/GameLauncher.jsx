@@ -72,7 +72,7 @@ export default function GameLauncher({ onExit }) {
 
       {/* the game's existing overlay UI, by the ids main.js/showcase.js expect */}
       <div id="hint">WASD / Arrows to move · E to interact · walk off the edge, I dare you</div>
-      <div id="prompt"></div>
+      <div id="prompt"><kbd className="prompt-key">E</kbd><span id="prompt-label"></span></div>
       <div id="panel">
         <span id="panel-close">✕</span>
         <h2 id="panel-title"></h2>

@@ -9,7 +9,7 @@ import { createPlanets, createSparkles } from './decor.js';
 import { createSky, createSun, createGrass, createClouds, createBirds, createStars, createBushes, createRocks } from './nature.js';
 import { createPost } from './post.js';
 import {
-  DAY_PHASE,
+  DAY_PHASE, ACCENT,
   SKY_COLOR, TILE_A, TILE_B, FOG_NEAR, FOG_FAR,
   HEMI_SKY, HEMI_GROUND, HEMI_INTENSITY, SUN_COLOR, SUN_INTENSITY, SUN_POS, SPOT_INTENSITY,
   SIZE, HALF,
@@ -438,6 +438,10 @@ addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });   // a
 // 7. UI PANEL
 // ============================================================
 const promptEl = document.getElementById('prompt');
+const promptLabel = document.getElementById('prompt-label');
+// tint the interaction prompt to the world's current time-of-day accent
+document.documentElement.style.setProperty(
+  '--game-accent', '#' + ACCENT.toString(16).padStart(6, '0'));
 const panel = document.getElementById('panel');
 const pTitle = document.getElementById('panel-title');
 const pBody = document.getElementById('panel-body');
@@ -743,7 +747,7 @@ function update(dt, t) {
       s.group.scale.setScalar(k);
     }
   }
-  if (near) { promptEl.textContent = 'E — ' + near.name; promptEl.style.display = 'block'; }
+  if (near) { promptLabel.textContent = near.name; promptEl.style.display = 'flex'; }
   else promptEl.style.display = 'none';
 
   // camera
