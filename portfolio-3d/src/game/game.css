@@ -1,13 +1,27 @@
 /* NOTE: the game no longer sets html/body scroll or background — the site
    owns those. Scroll-lock is applied only while the game overlay is open
    (see .game-open in the site's index.css). */
-#game-canvas canvas { display: block; }
+/* touch-action: none so a two-finger pinch reaches our zoom handler instead of
+   being eaten by the browser's own viewport zoom (no effect on wheel/desktop) */
+#game-canvas canvas { display: block; touch-action: none; }
 
 #hint { position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
   color: #fff; background: rgba(15,20,35,.55); padding: 8px 16px;
   border-radius: 999px; font-size: 13px;
   -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-  border: 1px solid rgba(255,255,255,.25); white-space: nowrap; }
+  border: 1px solid rgba(255,255,255,.25); white-space: nowrap;
+  /* It's a tutorial line, not furniture: hold it long enough to read, then
+     get out of the view. `forwards` keeps it gone instead of snapping back.
+     pointer-events:none so the faded-out pill can never eat a tap. */
+  pointer-events: none;
+  animation: hint-fade .8s ease 7s forwards; }
+@keyframes hint-fade { to { opacity: 0; visibility: hidden; } }
+/* dismissed early — index.js adds this the moment the player actually moves,
+   which proves they didn't need the instructions any more */
+#hint.gone { animation: none; opacity: 0; transition: opacity .5s ease; }
+@media (prefers-reduced-motion: reduce) {
+  #hint { animation-duration: .01s; }
+}
 
 /* "E — <station>" hint that floats up when you walk near a prop.
    A warm cream pill with a pressable keycap, to match the game world. */
@@ -80,8 +94,10 @@
   --screen-mute: #a89372;   /* dim label text                     */
   --glow:        0 0 10px rgba(255,180,84,.45);
 
+  --sc-w: min(880px, 76vw);   /* the monitor's width; arrows flank it */
+
   position: fixed; inset: 0; z-index: 20;
-  display: none; align-items: center; justify-content: center;
+  display: none; align-items: center; justify-content: center; gap: 16px;
   padding: max(18px, env(safe-area-inset-top)) 16px;
   background: radial-gradient(ellipse at center, rgba(20,12,4,.55), rgba(6,4,2,.9));
   -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
@@ -93,7 +109,9 @@
 /* --- The monitor: bezel + titlebar + screen, in a column --- */
 #sc-frame {
   position: relative;
-  width: min(1040px, 96vw); max-height: 92vh;
+  /* --sc-w is set on #showcase so the frame and the arrows flanking it are
+     sized from one number and the row can never overflow the viewport */
+  width: var(--sc-w, min(880px, 76vw)); max-height: 84vh;
   display: flex; flex-direction: column;
   background: linear-gradient(155deg, #2b2620, #171310 60%, #100d0a);
   border-radius: 20px;
@@ -507,4 +525,113 @@
 
 @media (max-width: 720px) {
   .ctg-body { grid-template-columns: 1fr; }
+}
+/* ============================================================
+   TOUCH CONTROLS — thumbstick + E button, for phones/tablets.
+   Hidden by default: setupTouch adds .on only when the device reports a
+   coarse pointer, so a desktop with a touchscreen keeps its keyboard UI.
+   ============================================================ */
+#touch-controls { display: none; }
+#touch-controls.on {
+  display: block;
+  position: fixed; inset: 0; z-index: 15;
+  pointer-events: none;              /* only the controls themselves take taps */
+}
+/* a full-screen window (showcase / about / contact) owns the screen */
+#touch-controls.hidden { display: none; }
+
+/* --- the thumbstick, parked where the left thumb rests --- */
+#tc-stick {
+  position: absolute;
+  left: max(20px, env(safe-area-inset-left));
+  bottom: max(26px, env(safe-area-inset-bottom));
+  width: 124px; height: 124px; border-radius: 50%;
+  pointer-events: auto;
+  touch-action: none;                /* we own the gesture; don't scroll/zoom */
+  opacity: .82; transition: opacity .2s;
+  background: radial-gradient(circle at 50% 42%, rgba(233,221,205,.32), rgba(233,221,205,.14));
+  border: 1.5px solid rgba(122,79,40,.5);
+  border: 1.5px solid color-mix(in srgb, var(--game-accent, #b07a45) 55%, #7a4f28);
+  box-shadow: 0 8px 22px rgba(40,25,10,.3), inset 0 1px 0 rgba(255,255,255,.35);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+}
+#tc-stick.held { opacity: 1; }
+#tc-thumb {
+  position: absolute; left: 50%; top: 50%;
+  width: 54px; height: 54px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(180deg, var(--wood, #b07a45), var(--wood-deep, #7a4f28));
+  border: 1px solid rgba(251,247,240,.45);
+  box-shadow: 0 4px 12px rgba(40,25,10,.45), inset 0 1px 0 rgba(255,255,255,.35);
+}
+
+
+/* --- both bottom corners are thumb territory now, so the exit pill and the
+       prompt move clear of them --- */
+body.touch-play .game-exit-btn {
+  top: max(12px, env(safe-area-inset-top)); bottom: auto;
+  right: max(12px, env(safe-area-inset-right));
+  min-height: 40px; padding: 0 16px; font-size: 13px;
+}
+body.touch-play #hint {
+  top: auto; bottom: max(172px, calc(env(safe-area-inset-bottom) + 172px));
+  max-width: min(88vw, 420px); white-space: normal; text-align: center;
+  font-size: 12px; line-height: 1.45;
+}
+/* On touch the prompt pill IS the interact control — same pill, same keycap,
+   just tappable. It sits clear of the thumbstick and gets a comfortable tap
+   target. On desktop it stays a passive label. */
+body.touch-play #prompt {
+  bottom: max(150px, calc(env(safe-area-inset-bottom) + 150px));
+  pointer-events: auto; cursor: pointer;
+  min-height: 48px; padding: 10px 22px;
+}
+body.touch-play #prompt:active { filter: brightness(1.06); transform: translateX(-50%) scale(.97); }
+body.touch-play #panel { bottom: 128px; }
+
+@media (prefers-reduced-motion: reduce) {
+  #tc-stick { transition: none; }
+}
+
+/* --- Project navigation arrows: outside the bezel, so they read as "flip to
+       another project" rather than another control on the screen. They
+       replace the old in-screen "‹ Prev / Next ›" buttons; the dots stay as
+       the position indicator. --- */
+.sc-projnav {
+  /* a flex sibling of the monitor, not an absolutely-placed overlay — that's
+     what keeps them hugging the window's own edges at its vertical centre
+     instead of drifting into the viewport corners on a wide screen */
+  flex: 0 0 auto;
+  width: 54px; height: 54px; border-radius: 50%; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-family: inherit; font-size: 30px; line-height: 1; font-weight: 700;
+  padding: 0 0 4px;                    /* optical centring of the chevron */
+  color: var(--amber);
+  background: rgba(20,13,6,.72);
+  border: 1px solid rgba(255,180,84,.4);
+  box-shadow: 0 6px 22px rgba(0,0,0,.5);
+  -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px);
+  transition: background .2s, box-shadow .2s, filter .15s;
+}
+.sc-projnav:hover {
+  background: rgba(40,26,10,.92);
+  box-shadow: 0 0 18px rgba(255,180,84,.4);
+}
+.sc-projnav:active { filter: brightness(1.15); }
+
+/* the dots are the only thing left in the in-screen nav row, so centre them */
+#sc-nav { justify-content: center; }
+
+@media (max-width: 720px) {
+  #showcase { --sc-w: min(880px, 88vw); }
+  /* the frame already fills the width here, so the arrows can't sit beside
+     it — drop them into the gap underneath, still flanking the window */
+  #showcase { flex-wrap: wrap; }
+  .sc-projnav {
+    position: absolute; top: auto; transform: none;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: 46px; height: 46px; font-size: 26px;
+  }
+  #sc-projprev { left: 16px; }
+  #sc-projnext { right: 16px; }
 }

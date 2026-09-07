@@ -65,7 +65,14 @@ export default function Hero({ onPlay }) {
       ctx.imageSmoothingQuality = 'medium';
     }
     const s = Math.max(W / img.width, H / img.height);
-    ctx.drawImage(img, (W - img.width * s) / 2, (H - img.height * s) / 2, img.width * s, img.height * s);
+    // Cover-fit crops the overflowing axis. On a portrait phone a 16:9 frame
+    // loses ~74% of its width, and centring that crop lands on a desk leg and
+    // blank wall — the character, who is the subject, sits in the RIGHT half of
+    // every frame. So on tall viewports bias the crop toward him instead of
+    // splitting the loss evenly. 0 = keep the left edge, 1 = keep the right.
+    const bias = W / H < 0.85 ? 0.68 : 0.5;
+    ctx.drawImage(img, (W - img.width * s) * bias, (H - img.height * s) / 2,
+      img.width * s, img.height * s);
   };
 
   // ---- progressive preload: don't pull all 13MB up front.

@@ -92,11 +92,16 @@ export function setupShowcase(onExit) {
   function nextProject() { pi = (pi + 1) % PROJECTS.length; si = 0; renderProject(); }
   function prevProject() { pi = (pi - 1 + PROJECTS.length) % PROJECTS.length; si = 0; renderProject(); }
 
-  el('sc-next').onclick = nextShot;
-  el('sc-prev').onclick = prevShot;
-  el('sc-navnext').onclick = nextProject;
-  el('sc-navprev').onclick = prevProject;
-  el('sc-exit').onclick = () => onExit && onExit();
+  // null-safe: the project arrows live outside the bezel and the old in-screen
+  // Prev/Next buttons are gone, so don't assume any one of them is in the DOM
+  const on = (id, fn) => { const n = el(id); if (n) n.onclick = fn; };
+  on('sc-next', nextShot);
+  on('sc-prev', prevShot);
+  on('sc-navnext', nextProject);      // legacy in-screen buttons, if present
+  on('sc-navprev', prevProject);
+  on('sc-projnext', nextProject);     // the side arrows
+  on('sc-projprev', prevProject);
+  on('sc-exit', () => onExit && onExit());
   // tapping the dim backdrop (but not the frame) exits
   root.onclick = (e) => { if (e.target === root) onExit && onExit(); };
 

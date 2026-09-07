@@ -82,6 +82,11 @@ export default function GameLauncher({ onExit }) {
 
       {/* PC showcase — styled as the in-world monitor: bezel + phosphor screen */}
       <div id="showcase" aria-hidden="true">
+        {/* project navigation — flanks the monitor as a flex row, so the
+            arrows sit against the window's own edges at its vertical centre
+            rather than floating out in the viewport corners */}
+        <button type="button" id="sc-projprev" className="sc-projnav" aria-label="Previous project">‹</button>
+
         <div id="sc-frame">
           {/* terminal chrome: window title + traffic-light controls (the red
               one is the real Back button showcase.js wires by #sc-exit) */}
@@ -112,10 +117,9 @@ export default function GameLauncher({ onExit }) {
                   <a id="sc-demo" className="sc-tab" target="_blank" rel="noopener">Live Demo ↗</a>
                   <a id="sc-repo" className="sc-tab sc-tab-ghost" target="_blank" rel="noopener">GitHub Repo ↗</a>
                 </div>
+                {/* just the dots now — prev/next moved out to the side arrows */}
                 <div id="sc-nav">
-                  <button type="button" id="sc-navprev" className="sc-navbtn" aria-label="Previous project">‹ Prev</button>
                   <div id="sc-projdots"></div>
-                  <button type="button" id="sc-navnext" className="sc-navbtn" aria-label="Next project">Next ›</button>
                 </div>
               </div>
             </div>
@@ -124,6 +128,8 @@ export default function GameLauncher({ onExit }) {
             <div className="sc-vignette" aria-hidden="true"></div>
           </div>
         </div>
+
+        <button type="button" id="sc-projnext" className="sc-projnav" aria-label="Next project">›</button>
       </div>
 
       {/* ABOUT window — the hamster's cozy profile card (E at the About station) */}
@@ -242,6 +248,12 @@ export default function GameLauncher({ onExit }) {
             </form>
           </div>
         </div>
+      </div>
+
+      {/* TOUCH controls — thumbstick + interact button. Inert until setupTouch
+          finds a coarse pointer and adds .on, so desktop never sees them. */}
+      <div id="touch-controls">
+        <div id="tc-stick" aria-hidden="true"><span id="tc-thumb" /></div>
       </div>
 
       {/* the site's own control: exit the game (bottom-right, same spot as launch) */}
