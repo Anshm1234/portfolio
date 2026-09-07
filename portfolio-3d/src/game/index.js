@@ -4,6 +4,7 @@ import { applyDeskEffects } from './desk-effects.js';
 import { setupShowcase } from './showcase.js';
 import { setupAbout } from './about.js';
 import { setupContact } from './contact.js';
+import { setupTouch } from './touch.js';
 import { STATIONS } from './stations.data.js';
 import { createPlanets, createSparkles } from './decor.js';
 import { createSky, createSun, createGrass, createClouds, createBirds, createStars, createBushes, createRocks } from './nature.js';
@@ -437,6 +438,8 @@ addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });   // a
 // ============================================================
 // 7. UI PANEL
 // ============================================================
+const hintEl = document.getElementById('hint');
+let hintDismissed = false;
 const promptEl = document.getElementById('prompt');
 const promptLabel = document.getElementById('prompt-label');
 // tint the interaction prompt to the world's current time-of-day accent
@@ -497,11 +500,13 @@ function enterAbout() {
   aboutOpen = true; inputLocked = true;
   panelOpen = false; panel.style.display = 'none';
   promptEl.style.display = 'none';
+  touchUI && touchUI.setVisible(false);
   aboutUI && aboutUI.open();
 }
 function exitAbout() {
   if (!aboutOpen) return;
   aboutOpen = false; inputLocked = false;
+  touchUI && touchUI.setVisible(true);
   aboutUI && aboutUI.close();
 }
 
@@ -511,11 +516,13 @@ function enterContact() {
   contactOpen = true; inputLocked = true;
   panelOpen = false; panel.style.display = 'none';
   promptEl.style.display = 'none';
+  touchUI && touchUI.setVisible(false);
   contactUI && contactUI.open();
 }
 function exitContact() {
   if (!contactOpen) return;
   contactOpen = false; inputLocked = false;
+  touchUI && touchUI.setVisible(true);
   contactUI && contactUI.close();
 }
 
@@ -572,6 +579,7 @@ let dollyActive = false;                 // true while animating in/out
 let showcaseUI = null;                   // the overlay controller (set below)
 let aboutUI = null;                      // the About window controller (set below)
 let contactUI = null;                    // the Contact window controller (set below)
+let touchUI = null;                      // the touch input layer (set below; null on desktop)
 const _wp = new THREE.Vector3(), _wq = new THREE.Quaternion(), _fwd = new THREE.Vector3();
 
 // Compute a camera position that frames the monitor screen head-on.
@@ -595,11 +603,13 @@ function enterProject() {
   dollyActive = true;
   panelOpen = false; panel.style.display = 'none';
   promptEl.style.display = 'none';
+  touchUI && touchUI.setVisible(false);
   showcaseUI && showcaseUI.open();       // fade the overlay in as we arrive
 }
 
 function exitProject() {
   showcaseUI && showcaseUI.close();   // always hide the overlay
+  touchUI && touchUI.setVisible(true);
   if (state === 'PROJECT') {
     state = 'GROUND';
     dollyActive = true;               // animate the pull-back to the follow-cam
@@ -616,17 +626,36 @@ function update(dt, t) {
   if (state === 'GROUND') {
     let ix = (keys['d'] || keys['arrowright'] ? 1 : 0) - (keys['a'] || keys['arrowleft'] ? 1 : 0);
     let iz = (keys['s'] || keys['arrowdown'] ? 1 : 0) - (keys['w'] || keys['arrowup'] ? 1 : 0);
+    // the touch thumbstick feeds the same two axes, but analog
+    if (touchUI && touchUI.vec.active) { ix += touchUI.vec.x; iz += touchUI.vec.z; }
     if (panelOpen || inputLocked) ix = iz = 0;   // no movement while a panel is open or fall recovery plays
-    if (sitting && (ix || iz)) standUp();        // any movement key stands you up
-    const moving = ix !== 0 || iz !== 0;
+    if (sitting && (ix || iz)) standUp();        // any movement input stands you up
+    // Magnitude drives speed, so a half-pushed stick walks slowly. Keyboard
+    // input always clamps to 1 (including diagonals), so its feel is unchanged.
+    const throttle = Math.min(1, Math.hypot(ix, iz));
+    const moving = throttle > 0.001;
     // hold off idle/walk while the post-impact Fall phase plays, or while seated
     if (!playFall && !sitting) playClip(moving ? 'walk' : 'idle');
 
+    // the player is walking, so the "how to walk" line has done its job —
+    // drop it now rather than making them wait out the timed fade
+    if (moving && !hintDismissed) {
+      hintDismissed = true;
+      hintEl && hintEl.classList.add('gone');
+    }
+
     if (moving) {
+      // On the analog stick, match the walk cadence to the actual pace so a
+      // slow creep doesn't moonwalk at full-speed footfalls. Always reset to
+      // the keyboard's 1.4 otherwise, or a stale stick value would stick.
+      if (actions['walk']) {
+        actions['walk'].timeScale =
+          1.4 * (touchUI && touchUI.vec.active ? Math.max(0.4, throttle) : 1);
+      }
       // Camera sits at a 45° corner, so rotate the input by the
       // camera's yaw — that makes W mean "up the screen".
       moveDir.set(ix, 0, iz).normalize().applyAxisAngle(UP, camYaw);
-      player.position.addScaledVector(moveDir, SPEED * dt);
+      player.position.addScaledVector(moveDir, SPEED * throttle * dt);
       // face the direction of travel (models face +Z by convention)
       player.rotation.y = lerpAngle(player.rotation.y, Math.atan2(moveDir.x, moveDir.z), 12 * dt);
       walkT += dt;
@@ -777,6 +806,12 @@ function update(dt, t) {
 showcaseUI = setupShowcase(exitProject);
 aboutUI = setupAbout(exitAbout);
 contactUI = setupContact(exitContact);
+// touch input (thumbstick + E + pinch). Returns an inert stub on desktop, so
+// everything above can call it unconditionally.
+touchUI = setupTouch({
+  onInteract: interact,
+  onZoom: (k) => { zoomTarget = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomTarget * k)); },
+});
 
 // ============================================================
 // 9. THE LOOP

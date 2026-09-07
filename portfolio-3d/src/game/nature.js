@@ -388,19 +388,56 @@ export function createStars(scene) {
 // --- Clouds ----------------------------------------------------
 // Soft billboards drifting across the sky; they wrap around the island.
 export function createClouds(scene) {
+  // The cloud sprite is built as a DataTexture — every byte written here in JS
+  // — rather than by painting gradients on a 2D canvas and wrapping it in a
+  // CanvasTexture, which is what it used to do.
+  //
+  // Why: on phones the clouds rendered speckled with saturated RGB confetti
+  // while desktop was clean, and each speck was about one TEXEL of the 256x128
+  // source magnified across a sprite tens of units wide. So individual texels
+  // were arriving corrupt. A canvas hands its pixels through several
+  // browser-dependent steps before the GPU sees them — 8-bit premultiplied
+  // storage, gradient rounding, then an un-premultiply on upload that divides
+  // RGB back out by alpha (and near-transparent cloud edges are almost all
+  // tiny alpha, where that division amplifies any per-channel disagreement into
+  // a saturated colour). Which of those misbehaves varies by browser and GPU.
+  //
+  // A DataTexture skips all of it: RGB is pinned to 255 at every texel and only
+  // alpha varies, so there is nothing left for a driver to round differently.
   const tex = (() => {
-    const c = document.createElement('canvas'); c.width = 256; c.height = 128;
-    const g = c.getContext('2d');
-    // a few overlapping soft blobs = one puffy cloud
-    const puff = (x, y, r) => {
-      const grd = g.createRadialGradient(x, y, 0, x, y, r);
-      grd.addColorStop(0, 'rgba(255,255,255,0.95)');
-      grd.addColorStop(0.5, 'rgba(255,255,255,0.55)');
-      grd.addColorStop(1, 'rgba(255,255,255,0)');
-      g.fillStyle = grd; g.fillRect(x - r, y - r, r * 2, r * 2);
-    };
-    puff(90, 78, 46); puff(130, 62, 52); puff(172, 80, 44); puff(60, 86, 32);
-    return new THREE.CanvasTexture(c);
+    const W = 256, H = 128;
+    const data = new Uint8Array(W * H * 4);
+
+    // same falloff the old radial gradient had: .95 at the centre, .55 at the
+    // half-radius, 0 at the rim, linear between those stops
+    const falloff = (d) => (d >= 1 ? 0
+      : d <= 0.5 ? 0.95 + (0.55 - 0.95) * (d / 0.5)
+      : 0.55 + (0 - 0.55) * ((d - 0.5) / 0.5));
+
+    const puffs = [[90, 78, 46], [130, 62, 52], [172, 80, 44], [60, 86, 32]];
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        let a = 0;
+        for (const [px, py, r] of puffs) {
+          const d = Math.hypot(x - px, y - py) / r;
+          const s = falloff(d);
+          if (s > 0) a = s + a * (1 - s);       // source-over, same as the canvas
+        }
+        const i = (y * W + x) * 4;
+        data[i] = data[i + 1] = data[i + 2] = 255;   // always white — never colour
+        data[i + 3] = Math.round(a * 255);
+      }
+    }
+
+    const t = new THREE.DataTexture(data, W, H, THREE.RGBAFormat);
+    // DataTexture defaults to NearestFilter; the sprite is magnified hugely, so
+    // it needs Linear or the cloud reads as visible square texels
+    t.magFilter = THREE.LinearFilter;
+    t.minFilter = THREE.LinearFilter;
+    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+    t.generateMipmaps = false;
+    t.needsUpdate = true;
+    return t;
   })();
 
   const clouds = [];

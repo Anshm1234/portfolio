@@ -22,9 +22,13 @@
 :root { color-scheme: light; }
 html, body { height: auto; overflow-x: hidden; }
 body {
-  /* --frame-bg is sampled at runtime from the first render frame so the
-     page blends seamlessly into the canvas; taupe is the fallback. */
-  background: var(--frame-bg, var(--bg)); color: var(--ink);
+  /* The designed taupe, always. --frame-bg (sampled from the first render
+     frame) is deliberately NOT used here: it's whatever colour happens to sit
+     in that frame's top-left corner — a muddy grey-brown — and letting it
+     paint the whole document dragged every section below the hero off-palette.
+     It's scoped to .hero-stage instead, which is the only place the seam
+     between page and canvas is actually visible. */
+  background: var(--bg); color: var(--ink);
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   line-height: 1.6;
 }
@@ -206,7 +210,16 @@ html.welcome-open, body.welcome-open { overflow: hidden; }
    runway itself (pin-spacer), so no tall section / CSS sticky needed.
    ============================================================ */
 .hero { position: relative; }
-.hero-stage { position: relative; height: 100vh; width: 100%; overflow: hidden; }
+/* --frame-bg is sampled from the first frame so the canvas has no visible seam
+   against the stage behind it while frames are still streaming in. */
+.hero-stage {
+  position: relative; width: 100%; overflow: hidden;
+  background: var(--frame-bg, var(--bg));
+  /* svh, not vh: mobile browsers count their collapsing toolbars in `vh`, so a
+     100vh stage renders taller than the screen and pushes its own content
+     under the URL bar. svh is the smallest (toolbars-visible) height. */
+  height: 100vh; height: 100svh;
+}
 .scrolly-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 
 /* --- Overlay beats --- */
@@ -1267,3 +1280,125 @@ textarea.ct-input { min-height: 150px; resize: vertical; }
 .game-shell:not(.open) { visibility: hidden; pointer-events: none; }
 .game-overlay, .game-canvas { position: fixed; inset: 0; }
 .game-canvas { z-index: 0; }
+
+/* ============================================================
+   SMALL SCREENS — the phone/tablet pass.
+   Kept in one block at the end of the file so it reliably wins over the
+   scattered per-component breakpoints above it.
+   ============================================================ */
+
+/* ---- Top bar: at 390px the centred nav pill, the monogram badge and the
+        résumé button all claimed the same strip and drew on top of each
+        other. The badge goes (the Home link already does its job) and the
+        pill stops being centred: it becomes a bar that fills exactly the
+        space the résumé button leaves, so the two can never collide. ---- */
+@media (max-width: 680px) {
+  .nav-logo { display: none; }
+
+  .nav {
+    left: 10px; right: 58px; transform: none;
+    justify-content: center; gap: 0; padding: 8px 4px;
+  }
+  .nav-menu { flex: 1; padding: 0 4px; }
+  .nav-links { width: 100%; justify-content: space-between; gap: 0; }
+  .nav-links a { font-size: 12px; }
+
+  /* icon-only, and a circle rather than a pill so it keeps its corner tight */
+  .resume-btn {
+    top: 14px; right: 10px;
+    width: 40px; height: 40px; padding: 0;
+    justify-content: center;
+  }
+  .resume-btn span { display: none; }
+  .resume-btn svg { width: 17px; height: 17px; }
+}
+
+/* ---- The launch button. At 277px wide it ate most of a 390px screen, and
+        `bottom: 22px` put it inside the zone iOS Safari and Chrome Android
+        cover with their own toolbars — which is what made it feel dead to
+        the touch: the tap was landing on browser chrome, not the button.
+        Smaller, and lifted clear of both the toolbar and the notch. ---- */
+@media (max-width: 680px) {
+  .game-btn { min-height: 48px; padding: 0 20px 0 17px; }
+  .game-btn-label { font-size: 13.5px; gap: 8px; }
+  .game-launch-btn {
+    right: 12px;
+    bottom: max(24px, calc(env(safe-area-inset-bottom) + 18px));
+  }
+  .game-exit-btn {
+    right: 12px;
+    bottom: max(24px, calc(env(safe-area-inset-bottom) + 18px));
+  }
+  /* the halo's 2.4s pulse is a desktop invitation cue; on a small screen it
+     just draws a throbbing ring over the content behind it */
+  .game-btn-halo { animation: none; opacity: .55; }
+}
+
+/* ---- Section rhythm: 80px of vertical padding on a phone is most of a
+        screen of nothing. ---- */
+@media (max-width: 680px) {
+  .section { padding: 56px 18px; }
+  .about-sec { padding-top: 84px; padding-bottom: 44px; }
+  .about-head { margin-bottom: 30px; }
+  .about-eyebrow-about, .about-eyebrow-me { font-size: 16px; letter-spacing: 2.5px; }
+  .about-left { min-height: 420px; }
+  .site-footer { flex-direction: column; gap: 8px; text-align: center; }
+}
+
+/* ---- Anything that must never widen the document. The marquee and the
+        ghost watermarks are deliberately oversized and rely on their parent
+        clipping them; make that explicit rather than incidental. ---- */
+@media (max-width: 680px) {
+  .about-marquee, .journey-sec, .projects-sec, .contact-sec { overflow: hidden; }
+}
+
+/* ---- Ghost watermarks. At 26vw the ABOUT/JOURNEY/PROJECTS lettering was
+        wider than the phone and sat right on top of the real heading it was
+        supposed to sit behind. Smaller, dropped lower, and fainter so it
+        reads as texture instead of competing text. ---- */
+@media (max-width: 680px) {
+  .about-sec::before,
+  .journey-sec::before,
+  .projects-sec::before,
+  .contact-sec::before {
+    font-size: 17vw; opacity: .5;
+  }
+  .about-sec::before { top: 96px; }
+}
+
+/* ---- Hero, portrait. The frames are 16:9; cover-fitting one into a 390x844
+        viewport scales to height and crops away ~74% of the width, so the
+        empty left half the beats were written for simply isn't on screen any
+        more — the type landed on top of the desk. On narrow screens the beats
+        drop to the lower third instead, over a scrim in the page's own taupe,
+        which is the part of every frame that stays calm. ---- */
+@media (max-width: 680px) {
+  .beat { justify-content: flex-end; padding: 24px 22px 16vh; }
+  .beat-left { align-items: flex-start; padding-left: 22px; padding-right: 22px; }
+  .beat-left > * { max-width: 100%; }
+  .beat-title { font-size: clamp(38px, 12vw, 56px); }
+  .beat-line { font-size: clamp(24px, 7.5vw, 34px); max-width: 100%; }
+  .beat-eyebrow { font-size: 12px; letter-spacing: 3.5px; }
+  .beat-sub { font-size: 15px; }
+  .beat-final { gap: 14px; }
+
+  /* sits above the canvas, below .overlay (z-index 10) so the type stays crisp */
+  .hero-stage::after {
+    content: ''; position: absolute; inset: 0; z-index: 5; pointer-events: none;
+    background: linear-gradient(to top,
+      rgba(190,176,158,.92) 0%,
+      rgba(190,176,158,.72) 26%,
+      rgba(190,176,158,.28) 46%,
+      transparent 64%);
+  }
+}
+
+/* ---- With the beats moved to the lower third, the hero's own invite button
+        lands directly on top of the fixed launch button — two identical
+        controls, one above the other. The fixed one is always on screen and
+        sits in thumb reach, so it's the one that stays; the final beat keeps
+        its line and lets that button answer it. ---- */
+@media (max-width: 680px) {
+  .invite-btn { display: none; }
+  .beat-final { gap: 0; }
+}
