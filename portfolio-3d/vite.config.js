@@ -1,8 +1,11 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import apiPlugin from './scripts/vite-plugin-api.mjs';
 
 export default defineConfig({
-  plugins: [react()],
+  // apiPlugin is dev-only (apply: 'serve') — it mounts the api/ handlers so
+  // `npm run dev` serves /api/ask exactly as Vercel will in production.
+  plugins: [react(), apiPlugin()],
   build: {
     rolldownOptions: {
       output: {

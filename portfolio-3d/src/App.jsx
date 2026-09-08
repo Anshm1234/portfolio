@@ -13,6 +13,7 @@ const Journey = lazy(() => import('./sections/Journey.jsx'));
 const Projects = lazy(() => import('./sections/Projects.jsx'));
 const Contact = lazy(() => import('./sections/Contact.jsx'));
 const GameLauncher = lazy(() => import('./components/GameLauncher.jsx'));
+const AskPanel = lazy(() => import('./components/AskPanel.jsx'));
 
 export default function App() {
   // 'intro'  → animated intro playing
@@ -139,6 +140,14 @@ export default function App() {
           <span className="sf-rights">© {new Date().getFullYear()} Ansh Madaan · All rights reserved</span>
         </footer>
       </main>
+
+      {/* ---- Ask-me FAQ panel, bottom-left, when the game is closed.
+              Lazy: nobody pays for it until the chunk is actually wanted. ---- */}
+      {!gameOpen && (
+        <Suspense fallback={null}>
+          <AskPanel />
+        </Suspense>
+      )}
 
       {/* ---- Launch button, bottom-right, when the game is closed ---- */}
       {!gameOpen && (
