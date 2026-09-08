@@ -131,21 +131,44 @@ accuracy.
 
 ### Why a custom `Embeddings` class instead of LangChain's built-in
 
-LangChain's `GoogleGenerativeAIEmbeddings` leaves `taskType` undefined, so
-`embedDocuments()` and `embedQuery()` return **byte-identical vectors** for the
-same text — measured at 3072/3072 components equal. Gemini prepends a different
-instruction for documents vs queries, and losing that asymmetry destroys
-retrieval. It also accepts `outputDimensionality: 768` and silently returns
-3072.
+Gemini prepends a different instruction depending on `taskType` —
+`RETRIEVAL_DOCUMENT` for corpus text, `RETRIEVAL_QUERY` for questions. A
+question and the document answering it are different shapes of text, and
+embedding both identically means comparing things never meant to be compared.
+
+LangChain's `GoogleGenerativeAIEmbeddings` **defaults `taskType` to undefined**,
+so out of the box `embedDocuments()` and `embedQuery()` return byte-identical
+vectors — measured at 3072/3072 components equal:
 
 | | recall@8 |
 |---|---|
-| LangChain defaults | **0/5** |
-| With correct task types | **94%** |
+| Built-in, default config | **0/5** |
+| Built-in, `taskType` set explicitly | **94%** |
+| `api/_lib/embeddings.js` | **94%** |
 
-`api/_lib/embeddings.js` subclasses LangChain's `Embeddings` — the documented
-extension point — so it still plugs into the vector store, retrievers, and MMR.
-It just sends the two parameters that matter.
+**The built-in works once you configure it** — recall is identical. So the
+custom class is not about correctness. It's about two things the built-in
+can't do:
+
+**1. Dimensionality.** `outputDimensionality: 768` is accepted and silently
+ignored; you get 3072. That's ~4× the committed vector file (863 KB vs ~3.4 MB)
+and ~4× the cold-start JSON parse, for no measured recall gain.
+
+**2. Task type bound per method, not per instance.** The built-in takes one
+`taskType` per object, so the two-instance workaround is only safe because we
+call `addVectors()` with pre-computed vectors. Anyone refactoring to the more
+obvious `addDocuments()` would silently embed *documents* with
+`RETRIEVAL_QUERY` — no error, no type warning, idiomatic-looking code, and
+collapsed recall. Subclassing `Embeddings` binds the task type to the method:
+
+```js
+embedDocuments(texts) { return this.#embed(texts, RETRIEVAL_DOCUMENT); }
+embedQuery(text)      { return this.#embed([text], RETRIEVAL_QUERY); }
+```
+
+Correct by construction, whichever method anything calls. It's LangChain's
+documented extension point, so it still plugs into the vector store,
+retrievers, and MMR.
 
 ### Why MMR is switched off
 
