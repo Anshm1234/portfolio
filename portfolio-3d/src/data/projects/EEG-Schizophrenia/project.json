@@ -1,7 +1,7 @@
 {
   "title": "EEG-Based Schizophrenia Detection Using Deep Learning",
-  "description": "Developed an interpretable deep learning pipeline for schizophrenia detection from multichannel EEG signals, incorporating signal preprocessing, feature learning, and explainability to enable accurate clinical classification.",
-  "stack": "PyTorch · NumPy · SciPy · Scikit-learn · Matplotlib",
+  "description": "A hybrid CNN–LSTM with attention that detects schizophrenia from multichannel EEG, reaching 97% accuracy on an 84-subject clinical dataset under a subject-wise split — 6–9% above CNN-only and LSTM-only baselines. Grad-CAM and Integrated Gradients surface which channels and time-segments drive each prediction. Paper accepted at ICSDP 2025.",
+  "stack": "TensorFlow/Keras · scikit-learn · XGBoost · Grad-CAM · Integrated Gradients",
   "shots": [
     "EEG-Signals.webp",
     "Architecture.webp"
